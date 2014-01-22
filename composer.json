@@ -1,0 +1,9 @@
+{
+    "name": "platinumpixs/google-closure-library",
+    "homepage": "https://code.google.com/p/closure-library/",
+    "description": "Clone of Google Closure Library - To provide a composer file",
+    "type": "library",
+    "license": "Apache-2.0",
+    "minimum-stability": "dev",
+    "target-dir": "PlatinumPixs/GoogleClosureLibraryJavascript",
+}
