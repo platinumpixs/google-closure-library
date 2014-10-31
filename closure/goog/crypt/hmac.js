@@ -19,6 +19,7 @@
  *   var hmac = new goog.crypt.Hmac(new goog.crypt.sha1(), key, 64);
  *   var digest = hmac.getHmac(bytes);
  *
+ * @author benyu@google.com (Jige Yu) - port to closure
  */
 
 
@@ -31,7 +32,7 @@ goog.require('goog.crypt.Hash');
 /**
  * @constructor
  * @param {!goog.crypt.Hash} hasher An object to serve as a hash function.
- * @param {Array.<number>} key The secret key to use to calculate the hmac.
+ * @param {Array<number>} key The secret key to use to calculate the hmac.
  *     Should be an array of not more than {@code blockSize} integers in
        {0, 255}.
  * @param {number=} opt_blockSize Optional. The block size {@code hasher} uses.
@@ -42,7 +43,7 @@ goog.require('goog.crypt.Hash');
  * @struct
  */
 goog.crypt.Hmac = function(hasher, key, opt_blockSize) {
-  goog.base(this);
+  goog.crypt.Hmac.base(this, 'constructor');
 
   /**
    * The underlying hasher to calculate hash.
@@ -57,7 +58,7 @@ goog.crypt.Hmac = function(hasher, key, opt_blockSize) {
   /**
    * The outer padding array of hmac
    *
-   * @type {!Array.<number>}
+   * @type {!Array<number>}
    * @private
    */
   this.keyO_ = new Array(this.blockSize);
@@ -65,7 +66,7 @@ goog.crypt.Hmac = function(hasher, key, opt_blockSize) {
   /**
    * The inner padding array of hmac
    *
-   * @type {!Array.<number>}
+   * @type {!Array<number>}
    * @private
    */
   this.keyI_ = new Array(this.blockSize);
@@ -96,7 +97,7 @@ goog.crypt.Hmac.IPAD_ = 0x36;
 /**
  * Initializes Hmac by precalculating the inner and outer paddings.
  *
- * @param {Array.<number>} key The secret key to use to calculate the hmac.
+ * @param {Array<number>} key The secret key to use to calculate the hmac.
  *     Should be an array of not more than {@code blockSize} integers in
        {0, 255}.
  * @private
@@ -105,6 +106,7 @@ goog.crypt.Hmac.prototype.initialize_ = function(key) {
   if (key.length > this.blockSize) {
     this.hasher_.update(key);
     key = this.hasher_.digest();
+    this.hasher_.reset();
   }
   // Precalculate padded and xor'd keys.
   var keyByte;
@@ -148,8 +150,8 @@ goog.crypt.Hmac.prototype.digest = function() {
 /**
  * Calculates an HMAC for a given message.
  *
- * @param {Array.<number>} message  An array of integers in {0, 255}.
- * @return {!Array.<number>} the digest of the given message.
+ * @param {Array<number>|Uint8Array|string} message  Data to Hmac.
+ * @return {!Array<number>} the digest of the given message.
  */
 goog.crypt.Hmac.prototype.getHmac = function(message) {
   this.reset();

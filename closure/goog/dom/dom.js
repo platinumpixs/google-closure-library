@@ -20,6 +20,7 @@
  * to a different document object.  This is useful if you are working with
  * frames or multiple windows.
  *
+ * @author arv@google.com (Erik Arvidsson)
  */
 
 
@@ -37,8 +38,6 @@ goog.require('goog.asserts');
 goog.require('goog.dom.BrowserFeature');
 goog.require('goog.dom.NodeType');
 goog.require('goog.dom.TagName');
-goog.require('goog.dom.classes');
-goog.require('goog.functions');
 goog.require('goog.math.Coordinate');
 goog.require('goog.math.Size');
 goog.require('goog.object');
@@ -179,6 +178,12 @@ goog.dom.$ = goog.dom.getElement;
  * selector expressions, but at increased cost in code size. If all you
  * need is particular tags belonging to a single class, this function
  * is fast and sleek.
+ *
+ * Note that tag names are case sensitive in the SVG namespace, and this
+ * function converts opt_tag to uppercase for comparisons. For queries in the
+ * SVG namespace you should use querySelector or querySelectorAll instead.
+ * https://bugzilla.mozilla.org/show_bug.cgi?id=963870
+ * https://bugs.webkit.org/show_bug.cgi?id=83438
  *
  * @see {goog.dom.query}
  *
@@ -369,8 +374,8 @@ goog.dom.setProperties = function(element, properties) {
  * element.setAttribute(key, val) instead of element[key] = val.  Used
  * by goog.dom.setProperties.
  *
- * @type {Object}
- * @private
+ * @private {!Object<string, string>}
+ * @const
  */
 goog.dom.DIRECT_ATTRIBUTE_MAP_ = {
   'cellpadding': 'cellPadding',
@@ -489,7 +494,7 @@ goog.dom.getDocumentHeight = function() {
  *   gadgets.window.adjustHeight(opt_height)
  *
  * @private
- * @param {Window} win The window whose document height to retrieve.
+ * @param {!Window} win The window whose document height to retrieve.
  * @return {number} The height of the document of the given window.
  */
 goog.dom.getDocumentHeight_ = function(win) {
@@ -509,10 +514,14 @@ goog.dom.getDocumentHeight_ = function(win) {
     // But there are patterns.  It just takes a lot of time and persistence
     // to figure out.
 
-    // Get the height of the viewport
-    var vh = goog.dom.getViewportSize_(win).height;
     var body = doc.body;
     var docEl = doc.documentElement;
+    if (!(docEl && body)) {
+      return 0;
+    }
+
+    // Get the height of the viewport
+    var vh = goog.dom.getViewportSize_(win).height;
     if (goog.dom.isCss1CompatMode_(doc) && docEl.scrollHeight) {
       // In Strict mode:
       // The inner content height is contained in either:
@@ -602,7 +611,7 @@ goog.dom.getDocumentScroll_ = function(doc) {
 
 /**
  * Gets the document scroll element.
- * @return {Element} Scrolling element.
+ * @return {!Element} Scrolling element.
  */
 goog.dom.getDocumentScrollElement = function() {
   return goog.dom.getDocumentScrollElement_(document);
@@ -612,7 +621,7 @@ goog.dom.getDocumentScrollElement = function() {
 /**
  * Helper for {@code getDocumentScrollElement}.
  * @param {!Document} doc The document to get the scroll element for.
- * @return {Element} Scrolling element.
+ * @return {!Element} Scrolling element.
  * @private
  */
 goog.dom.getDocumentScrollElement_ = function(doc) {
@@ -660,7 +669,7 @@ goog.dom.getWindow_ = function(doc) {
  * would return a div with two child paragraphs
  *
  * @param {string} tagName Tag to create.
- * @param {(Object|Array.<string>|string)=} opt_attributes If object, then a map
+ * @param {(Object|Array<string>|string)=} opt_attributes If object, then a map
  *     of name-value pairs for attributes. If a string, then this is the
  *     className of the new element. If an array, the elements will be joined
  *     together as the className of the new element.
@@ -721,7 +730,7 @@ goog.dom.createDom_ = function(doc, args) {
     if (goog.isString(attributes)) {
       element.className = attributes;
     } else if (goog.isArray(attributes)) {
-      goog.dom.classes.add.apply(null, [element].concat(attributes));
+      element.className = attributes.join(' ');
     } else {
       goog.dom.setProperties(element, attributes);
     }
@@ -899,7 +908,7 @@ goog.dom.isCss1CompatMode = function() {
 /**
  * Returns true if the browser is in "CSS1-compatible" (standards-compliant)
  * mode, false otherwise.
- * @param {Document} doc The document to check.
+ * @param {!Document} doc The document to check.
  * @return {boolean} True if in CSS1-compatible mode.
  * @private
  */
@@ -1280,6 +1289,7 @@ goog.dom.isWindow = function(obj) {
  * @return {Element} The parent, or null if not an Element.
  */
 goog.dom.getParentElement = function(element) {
+  var parent;
   if (goog.dom.BrowserFeature.CAN_USE_PARENT_ELEMENT_PROPERTY) {
     var isIe9 = goog.userAgent.IE &&
         goog.userAgent.isVersionOrHigher('9') &&
@@ -1288,10 +1298,13 @@ goog.dom.getParentElement = function(element) {
     // goog.global['SVGElement'] is not defined in IE9 quirks mode.
     if (!(isIe9 && goog.global['SVGElement'] &&
         element instanceof goog.global['SVGElement'])) {
-      return element.parentElement;
+      parent = element.parentElement;
+      if (parent) {
+        return parent;
+      }
     }
   }
-  var parent = element.parentNode;
+  parent = element.parentNode;
   return goog.dom.isElement(parent) ? /** @type {!Element} */ (parent) : null;
 };
 
@@ -1411,7 +1424,7 @@ goog.dom.compareNodeOrder = function(node1, node2) {
  * Utility function to compare the position of two nodes, when
  * {@code textNode}'s parent is an ancestor of {@code node}.  If this entry
  * condition is not met, this function will attempt to reference a null object.
- * @param {Node} textNode The textNode to compare.
+ * @param {!Node} textNode The textNode to compare.
  * @param {Node} node The node to compare.
  * @return {number} -1 if node is before textNode, +1 otherwise.
  * @private
@@ -1434,7 +1447,7 @@ goog.dom.compareParentsDescendantNodeIe_ = function(textNode, node) {
  * Utility function to compare the position of two nodes known to be non-equal
  * siblings.
  * @param {Node} node1 The first node to compare.
- * @param {Node} node2 The second node to compare.
+ * @param {!Node} node2 The second node to compare.
  * @return {number} -1 if node1 is before node2, +1 otherwise.
  * @private
  */
@@ -1502,8 +1515,8 @@ goog.dom.findCommonAncestor = function(var_args) {
  * @return {!Document} The document owning the node.
  */
 goog.dom.getOwnerDocument = function(node) {
-  // TODO(arv): Remove IE5 code.
-  // IE5 uses document instead of ownerDocument
+  // TODO(nnaze): Update param signature to be non-nullable.
+  goog.asserts.assert(node, 'Node cannot be null or undefined.');
   return /** @type {!Document} */ (
       node.nodeType == goog.dom.NodeType.DOCUMENT ? node :
       node.ownerDocument || node.document);
@@ -1610,7 +1623,7 @@ goog.dom.findNode = function(root, p) {
 
  * @param {Node} root The root of the tree to search.
  * @param {function(Node) : boolean} p The filter function.
- * @return {!Array.<!Node>} The found nodes or an empty array if none are found.
+ * @return {!Array<!Node>} The found nodes or an empty array if none are found.
  */
 goog.dom.findNodes = function(root, p) {
   var rv = [];
@@ -1624,7 +1637,7 @@ goog.dom.findNodes = function(root, p) {
  * using a depth first search.
  * @param {Node} root The root of the tree to search.
  * @param {function(Node) : boolean} p The filter function.
- * @param {!Array.<!Node>} rv The found nodes are added to this array.
+ * @param {!Array<!Node>} rv The found nodes are added to this array.
  * @param {boolean} findOne If true we exit after the first found node.
  * @return {boolean} Whether the search is complete or not. True in case findOne
  *     is true and the node is found. False otherwise.
@@ -1652,8 +1665,8 @@ goog.dom.findNodes_ = function(root, p, rv, findOne) {
 
 /**
  * Map of tags whose content to ignore when calculating text length.
- * @type {Object}
- * @private
+ * @private {!Object<string, number>}
+ * @const
  */
 goog.dom.TAGS_TO_IGNORE_ = {
   'SCRIPT': 1,
@@ -1666,8 +1679,8 @@ goog.dom.TAGS_TO_IGNORE_ = {
 
 /**
  * Map of tags which have predefined values with regard to whitespace.
- * @type {Object}
- * @private
+ * @private {!Object<string, string>}
+ * @const
  */
 goog.dom.PREDEFINED_TAG_VALUES_ = {'IMG': ' ', 'BR': '\n'};
 
@@ -1676,7 +1689,7 @@ goog.dom.PREDEFINED_TAG_VALUES_ = {'IMG': ' ', 'BR': '\n'};
  * Returns true if the element has a tab index that allows it to receive
  * keyboard focus (tabIndex >= 0), false otherwise.  Note that some elements
  * natively support keyboard focus, even if they have no tab index.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element has a tab index that allows keyboard
  *     focus.
  * @see http://fluidproject.org/blog/2008/01/09/getting-setting-and-removing-tabindex-values-with-javascript/
@@ -1714,7 +1727,7 @@ goog.dom.setFocusableTabIndex = function(element, enable) {
  * Returns true if the element can be focused, i.e. it has a tab index that
  * allows it to receive keyboard focus (tabIndex >= 0), or it is an element
  * that natively supports keyboard focus.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element allows keyboard focus.
  */
 goog.dom.isFocusable = function(element) {
@@ -1738,7 +1751,7 @@ goog.dom.isFocusable = function(element) {
 
 /**
  * Returns true if the element has a specified tab index.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element has a specified tab index.
  * @private
  */
@@ -1753,7 +1766,7 @@ goog.dom.hasSpecifiedTabIndex_ = function(element) {
 
 /**
  * Returns true if the element's tab index allows the element to be focused.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element's tab index allows focus.
  * @private
  */
@@ -1766,7 +1779,7 @@ goog.dom.isTabIndexFocusable_ = function(element) {
 
 /**
  * Returns true if the element is focusable even when tabIndex is not set.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element natively supports focus.
  * @private
  */
@@ -1782,7 +1795,7 @@ goog.dom.nativelySupportsFocus_ = function(element) {
 /**
  * Returns true if the element has a bounding rectangle that would be visible
  * (i.e. its width and height are greater than zero).
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element has a non-zero bounding rectangle.
  * @private
  */
@@ -1859,7 +1872,7 @@ goog.dom.getRawTextContent = function(node) {
  * Recursive support function for text content retrieval.
  *
  * @param {Node} node The node from which we are getting content.
- * @param {Array} buf string buffer.
+ * @param {Array<string>} buf string buffer.
  * @param {boolean} normalizeWhitespace Whether to normalize whitespace.
  * @private
  */
@@ -2009,7 +2022,8 @@ goog.dom.getAncestorByTagNameAndClass = function(element, opt_tag, opt_class) {
   return /** @type {Element} */ (goog.dom.getAncestor(element,
       function(node) {
         return (!tagName || node.nodeName == tagName) &&
-               (!opt_class || goog.dom.classes.has(node, opt_class));
+               (!opt_class || goog.isString(node.className) &&
+                   goog.array.contains(node.className.split(/\s+/), opt_class));
       }, true));
 };
 
@@ -2084,24 +2098,20 @@ goog.dom.getActiveElement = function(doc) {
 
 
 /**
- * @private {number} Cached version of the devicePixelRatio.
- */
-goog.dom.devicePixelRatio_;
-
-
-/**
- * Gives the devicePixelRatio, or attempts to determine if not present.
+ * Gives the current devicePixelRatio.
  *
- * By default, this is the same value given by window.devicePixelRatio. If
- * devicePixelRatio is not defined, the ratio is calculated with
+ * By default, this is the value of window.devicePixelRatio (which should be
+ * preferred if present).
+ *
+ * If window.devicePixelRatio is not present, the ratio is calculated with
  * window.matchMedia, if present. Otherwise, gives 1.0.
  *
- * This function is cached so that the pixel ratio is calculated only once
- * and only calculated when first requested.
+ * Some browsers (including Chrome) consider the browser zoom level in the pixel
+ * ratio, so the value may change across multiple calls.
  *
  * @return {number} The number of actual pixels per virtual pixel.
  */
-goog.dom.getPixelRatio = goog.functions.cacheReturnValue(function() {
+goog.dom.getPixelRatio = function() {
   var win = goog.dom.getWindow();
 
   // devicePixelRatio does not work on Mobile firefox.
@@ -2118,7 +2128,7 @@ goog.dom.getPixelRatio = goog.functions.cacheReturnValue(function() {
            goog.dom.matchesPixelRatio_(3) || 1;
   }
   return 1;
-});
+};
 
 
 /**
@@ -2447,7 +2457,7 @@ goog.dom.DomHelper.prototype.getWindow = function() {
 
 /**
  * Gets the document scroll element.
- * @return {Element} Scrolling element.
+ * @return {!Element} Scrolling element.
  */
 goog.dom.DomHelper.prototype.getDocumentScrollElement = function() {
   return goog.dom.getDocumentScrollElement_(this.document_);
@@ -2754,7 +2764,7 @@ goog.dom.DomHelper.prototype.findNode = goog.dom.findNode;
  * depth first search.
  * @param {Node} root The root of the tree to search.
  * @param {function(Node) : boolean} p The filter function.
- * @return {Array.<Node>} The found nodes or an empty array if none are found.
+ * @return {Array<Node>} The found nodes or an empty array if none are found.
  */
 goog.dom.DomHelper.prototype.findNodes = goog.dom.findNodes;
 
@@ -2763,7 +2773,7 @@ goog.dom.DomHelper.prototype.findNodes = goog.dom.findNodes;
  * Returns true if the element has a tab index that allows it to receive
  * keyboard focus (tabIndex >= 0), false otherwise.  Note that some elements
  * natively support keyboard focus, even if they have no tab index.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element has a tab index that allows keyboard
  *     focus.
  */
@@ -2787,7 +2797,7 @@ goog.dom.DomHelper.prototype.setFocusableTabIndex =
  * Returns true if the element can be focused, i.e. it has a tab index that
  * allows it to receive keyboard focus (tabIndex >= 0), or it is an element
  * that natively supports keyboard focus.
- * @param {Element} element Element to check.
+ * @param {!Element} element Element to check.
  * @return {boolean} Whether the element allows keyboard focus.
  */
 goog.dom.DomHelper.prototype.isFocusable = goog.dom.isFocusable;

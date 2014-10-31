@@ -100,7 +100,7 @@ goog.ui.HoverCard = function(isAnchor, opt_checkDescendants, opt_domHelper,
   /**
    * Array of anchor elements that should be detached when we are no longer
    * associated with them.
-   * @type {!Array.<Element>}
+   * @type {!Array<Element>}
    * @private
    */
   this.tempAttachedAnchors_ = [];
@@ -118,6 +118,7 @@ goog.ui.HoverCard = function(isAnchor, opt_checkDescendants, opt_domHelper,
                      this.handleTriggerMouseOver_, false, this);
 };
 goog.inherits(goog.ui.HoverCard, goog.ui.AdvancedTooltip);
+goog.tagUnsealableClass(goog.ui.HoverCard);
 
 
 /**

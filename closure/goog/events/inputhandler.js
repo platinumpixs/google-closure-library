@@ -20,7 +20,7 @@
  * <br>
  * Note: this does not guarantee the correctness of {@code keyCode} or
  * {@code charCode}, or attempt to unify them across browsers. See
- * {@code goog.events.KeyHandler} for that functionality.<br>
+ * {@code goog.events.KeyHandler} for that functionality<br>
  * <br>
  * Known issues:
  * <ul>
@@ -57,7 +57,14 @@ goog.require('goog.userAgent');
  * @extends {goog.events.EventTarget}
  */
 goog.events.InputHandler = function(element) {
-  goog.base(this);
+  goog.events.InputHandler.base(this, 'constructor');
+
+  /**
+   * Id of a timer used to postpone firing input event in emulation mode.
+   * @type {?number}
+   * @private
+   */
+  this.timer_ = null;
 
   /**
    * The element that you want to listen for input events on.
@@ -80,7 +87,7 @@ goog.events.InputHandler = function(element) {
           element.tagName == 'TEXTAREA');
 
   /**
-   * @type {goog.events.EventHandler.<!goog.events.InputHandler>}
+   * @type {goog.events.EventHandler<!goog.events.InputHandler>}
    * @private
    */
   this.eventHandler_ = new goog.events.EventHandler(this);
@@ -109,14 +116,6 @@ goog.inherits(goog.events.InputHandler, goog.events.EventTarget);
 goog.events.InputHandler.EventType = {
   INPUT: 'input'
 };
-
-
-/**
- * Id of a timer used to postpone firing input event in emulation mode.
- * @type {?number}
- * @private
- */
-goog.events.InputHandler.prototype.timer_ = null;
 
 
 /**
@@ -202,7 +201,7 @@ goog.events.InputHandler.prototype.cancelTimerIfSet_ = function() {
 /**
  * Creates an input event from the browser event.
  * @param {goog.events.BrowserEvent} be A browser event.
- * @return {goog.events.BrowserEvent} An input event.
+ * @return {!goog.events.BrowserEvent} An input event.
  * @private
  */
 goog.events.InputHandler.prototype.createInputEvent_ = function(be) {
@@ -214,7 +213,7 @@ goog.events.InputHandler.prototype.createInputEvent_ = function(be) {
 
 /** @override */
 goog.events.InputHandler.prototype.disposeInternal = function() {
-  goog.base(this, 'disposeInternal');
+  goog.events.InputHandler.base(this, 'disposeInternal');
   this.eventHandler_.dispose();
   this.cancelTimerIfSet_();
   delete this.element_;

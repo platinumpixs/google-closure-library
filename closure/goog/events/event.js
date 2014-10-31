@@ -60,6 +60,9 @@ goog.events.Event = function(type, opt_target) {
   this.type = type instanceof goog.events.EventId ? String(type) : type;
 
   /**
+   * TODO(tbreisacher): The type should probably be
+   * EventTarget|goog.events.EventTarget.
+   *
    * Target of the event.
    * @type {Object|undefined}
    */

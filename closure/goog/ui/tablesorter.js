@@ -71,12 +71,13 @@ goog.ui.TableSorter = function(opt_domHelper) {
 
   /**
    * Array of custom sorting functions per colun.
-   * @type {Array.<function(*, *) : number>}
+   * @type {Array<function(*, *) : number>}
    * @private
    */
   this.sortFunctions_ = [];
 };
 goog.inherits(goog.ui.TableSorter, goog.ui.Component);
+goog.tagUnsealableClass(goog.ui.TableSorter);
 
 
 /**

@@ -23,11 +23,16 @@
 
 goog.provide('goog.ui.Select');
 
+goog.require('goog.a11y.aria');
 goog.require('goog.a11y.aria.Role');
+goog.require('goog.a11y.aria.State');
+goog.require('goog.array');
 goog.require('goog.events.EventType');
 goog.require('goog.ui.Component');
+goog.require('goog.ui.IdGenerator');
 goog.require('goog.ui.MenuButton');
 goog.require('goog.ui.MenuItem');
+goog.require('goog.ui.MenuRenderer');
 goog.require('goog.ui.SelectionModel');
 goog.require('goog.ui.registry');
 
@@ -47,20 +52,36 @@ goog.require('goog.ui.registry');
  * @param {goog.ui.Menu=} opt_menu Menu containing selection options.
  * @param {goog.ui.ButtonRenderer=} opt_renderer Renderer used to render or
  *     decorate the control; defaults to {@link goog.ui.MenuButtonRenderer}.
- * @param {goog.dom.DomHelper=} opt_domHelper Optional DOM hepler, used for
+ * @param {goog.dom.DomHelper=} opt_domHelper Optional DOM helper, used for
  *     document interaction.
+ * @param {!goog.ui.MenuRenderer=} opt_menuRenderer Renderer used to render or
+ *     decorate the menu; defaults to {@link goog.ui.MenuRenderer}.
  * @constructor
  * @extends {goog.ui.MenuButton}
  */
-goog.ui.Select = function(opt_caption, opt_menu, opt_renderer, opt_domHelper) {
-  goog.base(this, opt_caption, opt_menu, opt_renderer, opt_domHelper);
+goog.ui.Select = function(opt_caption, opt_menu, opt_renderer, opt_domHelper,
+    opt_menuRenderer) {
+  goog.ui.Select.base(this, 'constructor',
+      opt_caption, opt_menu, opt_renderer, opt_domHelper,
+      opt_menuRenderer ||
+          new goog.ui.MenuRenderer(goog.a11y.aria.Role.LISTBOX));
   /**
    * Default caption to show when no option is selected.
    * @private {goog.ui.ControlContent}
    */
   this.defaultCaption_ = this.getContent();
+
+  /**
+   * The initial value of the aria label of the content element. This will be
+   * null until the caption is first populated and will be non-null thereafter.
+   * @private {?string}
+   */
+  this.initialAriaLabel_ = null;
+
+  this.setPreferredAriaRole(goog.a11y.aria.Role.LISTBOX);
 };
 goog.inherits(goog.ui.Select, goog.ui.MenuButton);
+goog.tagUnsealableClass(goog.ui.Select);
 
 
 /**
@@ -124,9 +145,9 @@ goog.ui.Select.prototype.disposeInternal = function() {
  */
 goog.ui.Select.prototype.handleMenuAction = function(e) {
   this.setSelectedItem(/** @type {goog.ui.MenuItem} */ (e.target));
-  goog.base(this, 'handleMenuAction', e);
+  goog.ui.Select.base(this, 'handleMenuAction', e);
 
-  // NOTE(user): We should not stop propagation and then fire
+  // NOTE(chrishenry): We should not stop propagation and then fire
   // our own ACTION event. Fixing this without breaking anyone
   // relying on this event is hard though.
   e.stopPropagation();
@@ -219,6 +240,7 @@ goog.ui.Select.prototype.addItem = function(item) {
   } else {
     this.createSelectionModel_(this.getMenu());
   }
+  this.updateAriaActiveDescendant_();
 };
 
 
@@ -415,6 +437,54 @@ goog.ui.Select.prototype.listenToSelectionModelEvents_ = function() {
 goog.ui.Select.prototype.updateCaption = function() {
   var item = this.getSelectedItem();
   this.setContent(item ? item.getCaption() : this.defaultCaption_);
+
+  var contentElement = this.getRenderer().getContentElement(this.getElement());
+  // Despite the ControlRenderer interface indicating the return value is
+  // {Element}, many renderers cast element.firstChild to {Element} when it is
+  // really {Node}. Checking tagName verifies this is an {!Element}.
+  if (contentElement && this.getDomHelper().isElement(contentElement)) {
+    if (this.initialAriaLabel_ == null) {
+      this.initialAriaLabel_ = goog.a11y.aria.getLabel(contentElement);
+    }
+    var itemElement = item ? item.getElement() : null;
+    goog.a11y.aria.setLabel(contentElement, itemElement ?
+        goog.a11y.aria.getLabel(itemElement) : this.initialAriaLabel_);
+    this.updateAriaActiveDescendant_();
+  }
+};
+
+
+/**
+ * Updates the aria active descendant attribute.
+ * @private
+ */
+goog.ui.Select.prototype.updateAriaActiveDescendant_ = function() {
+  var renderer = this.getRenderer();
+  if (renderer) {
+    var contentElement = renderer.getContentElement(this.getElement());
+    if (contentElement) {
+      var buttonElement = this.getElementStrict();
+      if (!contentElement.id) {
+        contentElement.id = goog.ui.IdGenerator.getInstance().getNextUniqueId();
+      }
+      goog.a11y.aria.setRole(contentElement, goog.a11y.aria.Role.OPTION);
+      goog.a11y.aria.setState(buttonElement,
+          goog.a11y.aria.State.ACTIVEDESCENDANT, contentElement.id);
+      if (this.selectionModel_) {
+        // We can't use selectionmodel's getItemCount here because we need to
+        // skip separators.
+        var items = this.selectionModel_.getItems();
+        var menuItemCount = goog.array.count(items, function(item) {
+          return item instanceof goog.ui.MenuItem;
+        });
+        goog.a11y.aria.setState(contentElement, goog.a11y.aria.State.SETSIZE,
+            menuItemCount);
+        // Set a human-readable selection index.
+        goog.a11y.aria.setState(contentElement, goog.a11y.aria.State.POSINSET,
+            1 + this.selectionModel_.getSelectedIndex());
+      }
+    }
+  }
 };
 
 
@@ -442,6 +512,8 @@ goog.ui.Select.prototype.setOpen = function(open, opt_e) {
 
   if (this.isOpen()) {
     this.getMenu().setHighlightedIndex(this.getSelectedIndex());
+  } else {
+    this.updateAriaActiveDescendant_();
   }
 };
 

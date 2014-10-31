@@ -63,7 +63,7 @@ goog.require('goog.userAgent');
  */
 goog.ui.SplitPane = function(firstComponent, secondComponent, orientation,
     opt_domHelper) {
-  goog.base(this, opt_domHelper);
+  goog.ui.SplitPane.base(this, 'constructor', opt_domHelper);
 
   /**
    * The orientation of the containers.
@@ -92,6 +92,7 @@ goog.ui.SplitPane = function(firstComponent, secondComponent, orientation,
   this.splitpaneHandle_ = null;
 };
 goog.inherits(goog.ui.SplitPane, goog.ui.Component);
+goog.tagUnsealableClass(goog.ui.SplitPane);
 
 
 /**
@@ -373,7 +374,7 @@ goog.ui.SplitPane.prototype.getElementToDecorate_ = function(rootElement,
  * @override
  */
 goog.ui.SplitPane.prototype.decorateInternal = function(element) {
-  goog.base(this, 'decorateInternal', element);
+  goog.ui.SplitPane.base(this, 'decorateInternal', element);
 
   this.setUpHandle_();
 
@@ -424,7 +425,7 @@ goog.ui.SplitPane.prototype.finishSetup_ = function() {
  * @override
  */
 goog.ui.SplitPane.prototype.enterDocument = function() {
-  goog.base(this, 'enterDocument');
+  goog.ui.SplitPane.base(this, 'enterDocument');
 
   // If position is not set in the inline style of the element, it is not
   // possible to get the element's real CSS position until the element is in
@@ -514,6 +515,7 @@ goog.ui.SplitPane.prototype.setUpHandle_ = function() {
  * @protected
  */
 goog.ui.SplitPane.prototype.setOrientationClassForHandle = function() {
+  goog.asserts.assert(this.splitpaneHandle_);
   if (this.isVertical()) {
     goog.dom.classlist.swap(this.splitpaneHandle_,
         goog.ui.SplitPane.HANDLE_CLASS_NAME_HORIZONTAL_,
@@ -573,7 +575,6 @@ goog.ui.SplitPane.prototype.getOrientation = function() {
  * @private
  */
 goog.ui.SplitPane.prototype.moveAndSize_ = function(element, rect) {
-
   goog.style.setPosition(element, rect.left, rect.top);
   // TODO(user): Add a goog.math.Size.max call for below.
   goog.style.setBorderBoxSize(element,
@@ -592,11 +593,29 @@ goog.ui.SplitPane.prototype.getFirstComponentSize = function() {
 /**
  * Set the size of the left/top component, and resize the other component based
  * on that size and handle size.
- * @param {?number=} opt_size The size of the top or left, in pixels.
+ * @param {?number=} opt_size The size of the top or left, in pixels. If
+ *     unspecified, leaves the size of the first component unchanged but adjusts
+ *     the size of the second component to fit the split pane size.
  */
 goog.ui.SplitPane.prototype.setFirstComponentSize = function(opt_size) {
+  this.setFirstComponentSize_(
+      goog.style.getBorderBoxSize(this.getElement()), opt_size);
+};
+
+
+/**
+ * Set the size of the left/top component, and resize the other component based
+ * on that size and handle size. Unlike the public method, this takes the
+ * current pane size which avoids the expensive getBorderBoxSize() call
+ * when we have the size available.
+ *
+ * @param {!goog.math.Size} splitpaneSize The current size of the splitpane.
+ * @param {?number=} opt_size The size of the top or left, in pixels.
+ * @private
+ */
+goog.ui.SplitPane.prototype.setFirstComponentSize_ = function(
+    splitpaneSize, opt_size) {
   var top = 0, left = 0;
-  var splitpaneSize = goog.style.getBorderBoxSize(this.getElement());
 
   var isVertical = this.isVertical();
   // Figure out first component size; it's either passed in, taken from the
@@ -681,30 +700,18 @@ goog.ui.SplitPane.prototype.setFirstComponentSize = function(opt_size) {
 
 
 /**
- * Dummy object to work around compiler warning.
- * TODO(arv): Fix compiler or refactor to not depend on resize()
- * @private
- * @type {Object}
+ * Set the size of the splitpane.  This is usually called by the controlling
+ * application.  This will set the SplitPane BorderBoxSize.
+ * @param {!goog.math.Size} size The size to set the splitpane.
+ * @param {?number=} opt_firstComponentSize The size of the top or left
+ *     component, in pixels.
  */
-goog.ui.SplitPane.resizeWarningWorkaround_ = {
-  /**
-   * @param {goog.math.Size} size The new size.
-   */
-  resize: function(size) {}
-};
-
-
-/**
-  * Set the size of the splitpane.  This is usually called by the controlling
-  * application.  This will set the SplitPane BorderBoxSize.
-  * @param {goog.math.Size} size The size to set the splitpane.
-  */
-goog.ui.SplitPane.prototype.setSize = function(size) {
+goog.ui.SplitPane.prototype.setSize = function(size, opt_firstComponentSize) {
   goog.style.setBorderBoxSize(this.getElement(), size);
   if (this.iframeOverlay_) {
     goog.style.setBorderBoxSize(this.iframeOverlay_, size);
   }
-  this.setFirstComponentSize();
+  this.setFirstComponentSize_(size, opt_firstComponentSize);
 };
 
 
@@ -837,7 +844,7 @@ goog.ui.SplitPane.prototype.getRelativeTop_ = function(top) {
 
 /**
  * Handle the drag event. Move the containers.
- * @param {goog.events.Event} e The event.
+ * @param {!goog.fx.DragEvent} e The event.
  * @private
  */
 goog.ui.SplitPane.prototype.handleDrag_ = function(e) {
@@ -858,7 +865,7 @@ goog.ui.SplitPane.prototype.handleDrag_ = function(e) {
  * Handle the drag end event. If we're not doing continuous resize,
  * resize the component.  If we're doing continuous resize, the component
  * is already the correct size.
- * @param {goog.events.Event} e The event.
+ * @param {!goog.fx.DragEvent} e The event.
  * @private
  */
 goog.ui.SplitPane.prototype.handleDragEnd_ = function(e) {
@@ -898,5 +905,5 @@ goog.ui.SplitPane.prototype.disposeInternal = function() {
   goog.dom.removeNode(this.iframeOverlay_);
   this.iframeOverlay_ = null;
 
-  goog.base(this, 'disposeInternal');
+  goog.ui.SplitPane.base(this, 'disposeInternal');
 };

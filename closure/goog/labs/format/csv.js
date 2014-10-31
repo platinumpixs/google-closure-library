@@ -20,6 +20,7 @@
  *
  * This parser uses http://tools.ietf.org/html/rfc4180 as the definition of CSV.
  *
+ * @author nnaze@google.com (Nathan Naze) Ported to Closure
  */
 goog.provide('goog.labs.format.csv');
 goog.provide('goog.labs.format.csv.ParseError');
@@ -83,7 +84,7 @@ goog.labs.format.csv.ParseError = function(text, index, opt_message) {
     }
   }
 
-  goog.base(this, message);
+  goog.labs.format.csv.ParseError.base(this, 'constructor', message);
 };
 goog.inherits(goog.labs.format.csv.ParseError, goog.debug.Error);
 
@@ -149,7 +150,7 @@ goog.labs.format.csv.Token;
  * @param {string} text The entire CSV text to be parsed.
  * @param {boolean=} opt_ignoreErrors Whether to ignore parsing errors and
  *      instead try to recover and keep going.
- * @return {!Array.<!Array.<string>>} The parsed CSV.
+ * @return {!Array<!Array<string>>} The parsed CSV.
  */
 goog.labs.format.csv.parse = function(text, opt_ignoreErrors) {
 
@@ -339,7 +340,7 @@ goog.labs.format.csv.parse = function(text, opt_ignoreErrors) {
 
   /**
    * Read the next record.
-   * @return {!Array.<string>|!goog.labs.format.csv.Sentinels_} A single record
+   * @return {!Array<string>|!goog.labs.format.csv.Sentinels_} A single record
    *     with multiple fields.
    */
   function readRecord() {

@@ -116,6 +116,13 @@ function testIE10Compatibility() {
   assertVersion('10.0');
 }
 
+function testIE10Mobile() {
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.IE_10_MOBILE);
+  assertTrue(goog.labs.userAgent.browser.isIE());
+  assertVersion('10.0');
+}
+
 function testIE11() {
   goog.labs.userAgent.util.setUserAgent(goog.labs.userAgent.testAgents.IE_11);
   assertTrue(goog.labs.userAgent.browser.isIE());
@@ -210,6 +217,21 @@ function testSafariIphone() {
   assertVersionBetween('5.0', '7.0');
 }
 
+function testCoast() {
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.COAST);
+  assertTrue(goog.labs.userAgent.browser.isCoast());
+}
+
+function testWebviewIOS() {
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.WEBVIEW_IPHONE);
+  assertTrue(goog.labs.userAgent.browser.isIosWebview());
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.WEBVIEW_IPAD);
+  assertTrue(goog.labs.userAgent.browser.isIosWebview());
+}
+
 function testAndroidBrowser235() {
   goog.labs.userAgent.util.setUserAgent(
       goog.labs.userAgent.testAgents.ANDROID_BROWSER_235);
@@ -232,6 +254,24 @@ function testAndroidBrowser233() {
   assertTrue(goog.labs.userAgent.browser.isAndroidBrowser());
   assertVersion('4.0');
   assertVersionBetween('3.0', '5.0');
+}
+
+function testAndroidWebView411() {
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.ANDROID_WEB_VIEW_4_1_1);
+  assertFalse(goog.labs.userAgent.browser.isChrome());
+  assertTrue(goog.labs.userAgent.browser.isAndroidBrowser());
+  assertVersion('4.0');
+  assertVersionBetween('3.0', '5.0');
+}
+
+function testAndroidWebView44() {
+  goog.labs.userAgent.util.setUserAgent(
+      goog.labs.userAgent.testAgents.ANDROID_WEB_VIEW_4_4);
+  assertTrue(goog.labs.userAgent.browser.isChrome());
+  assertFalse(goog.labs.userAgent.browser.isAndroidBrowser());
+  assertVersion('30.0.0.0');
+  assertVersionBetween('29.0', '31.0');
 }
 
 function testSilk() {

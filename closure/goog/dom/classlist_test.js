@@ -23,7 +23,6 @@ goog.require('goog.dom');
 goog.require('goog.dom.classlist');
 goog.require('goog.testing.ExpectedFailures');
 goog.require('goog.testing.jsunit');
-goog.require('goog.userAgent.product');
 
 var expectedFailures = new goog.testing.ExpectedFailures();
 var classlist = goog.dom.classlist;
@@ -190,6 +189,30 @@ function testEnableNotAddingMultiples() {
   assertEquals('A B', el.className);
 }
 
+function testEnableAllRemove() {
+  var elem = document.createElement('div');
+  elem.className = 'foo bar baz';
+
+  // Test removing some classes (some not present).
+  goog.dom.classlist.enableAll(elem, ['a', 'bar'], false /* enable */);
+  assertTrue(goog.dom.classlist.contains(elem, 'foo'));
+  assertFalse(goog.dom.classlist.contains(elem, 'bar'));
+  assertTrue(goog.dom.classlist.contains(elem, 'baz'));
+  assertFalse(goog.dom.classlist.contains(elem, 'a'));
+}
+
+function testEnableAllAdd() {
+  var elem = document.createElement('div');
+  elem.className = 'foo bar';
+
+  // Test adding some classes (some duplicate).
+  goog.dom.classlist.enableAll(elem, ['a', 'bar', 'baz'], true /* enable */);
+  assertTrue(goog.dom.classlist.contains(elem, 'foo'));
+  assertTrue(goog.dom.classlist.contains(elem, 'bar'));
+  assertTrue(goog.dom.classlist.contains(elem, 'baz'));
+  assertTrue(goog.dom.classlist.contains(elem, 'a'));
+}
+
 function testSwap() {
   var el = goog.dom.getElement('p1');
   classlist.set(el, 'SOMECLASS FIRST');
@@ -249,25 +272,4 @@ function testAddRemoveString() {
 
   classlist.addRemove(el, 'D', 'B');
   assertEquals('B', el.className);
-}
-
-function testSvg() {
-  // Safari 5 does not support classList, and the fallback of reading
-  // from className does not work on SVG elements.
-  expectedFailures.expectFailureFor(goog.userAgent.product.SAFARI,
-      'className on SVGElement is not a string');
-
-  try {
-    var el = goog.dom.getElement('rect1');
-    assertTrue(classlist.contains(el, 'svgclass'));
-    assertElementsEquals(['svgclass'], classlist.get(el));
-
-    classlist.add(el, 'svgclass2');
-    assertElementsEquals(['svgclass', 'svgclass2'], classlist.get(el));
-
-    classlist.remove(el, 'svgclass');
-    assertElementsEquals(['svgclass2'], classlist.get(el));
-  } catch (e) {
-    expectedFailures.handleException(e);
-  }
 }

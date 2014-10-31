@@ -46,14 +46,14 @@ goog.require('goog.string.TypedString');
  * without appropriate escaping.
  *
  * Note also that this type's contract does not imply any guarantees regarding
- * the resource the URL refers to.  In particular, SafeUrls are <b>not<b/>
+ * the resource the URL refers to.  In particular, SafeUrls are <b>not</b>
  * safe to use in a context where the referred-to resource is interpreted as
  * trusted code, e.g., as the src of a script tag.
  *
- * Instances of this type must be created via its factory methods
- * ({@code goog.html.SafeUrl.from}, {@code goog.html.SafeUrl.sanitize}, etc and
- * not by invoking its constructor.  The constructor intentionally takes no
- * parameters and the type is immutable; hence only a default instance
+ * Instances of this type must be created via the factory methods
+ * ({@code goog.html.SafeUrl.fromConstant}, {@code goog.html.SafeUrl.sanitize}),
+ * etc and not by invoking its constructor.  The constructor intentionally
+ * takes no parameters and the type is immutable; hence only a default instance
  * corresponding to the empty string can be obtained via constructor invocation.
  *
  * @see goog.html.SafeUrl#fromConstant
@@ -80,8 +80,8 @@ goog.html.SafeUrl = function() {
    * @const
    * @private
    */
-  this.SAFE_URL_TYPE_MARKER__GOOG_HTML_SECURITY_PRIVATE_ =
-      goog.html.SafeUrl.TYPE_MARKER__GOOG_HTML_SECURITY_PRIVATE_;
+  this.SAFE_URL_TYPE_MARKER_GOOG_HTML_SECURITY_PRIVATE_ =
+      goog.html.SafeUrl.TYPE_MARKER_GOOG_HTML_SECURITY_PRIVATE_;
 };
 
 
@@ -120,7 +120,18 @@ goog.html.SafeUrl.prototype.implementsGoogStringTypedString = true;
  *
  * IMPORTANT: In code where it is security relevant that an object's type is
  * indeed {@code SafeUrl}, use {@code goog.html.SafeUrl.unwrap} instead of this
- * method. If in doubt, assume that it's security-relevant.
+ * method. If in doubt, assume that it's security relevant. In particular, note
+ * that goog.html functions which return a goog.html type do not guarantee that
+ * the returned instance is of the right type. For example:
+ *
+ * <pre>
+ * var fakeSafeHtml = new String('fake');
+ * fakeSafeHtml.__proto__ = goog.html.SafeHtml.prototype;
+ * var newSafeHtml = goog.html.SafeHtml.htmlEscape(fakeSafeHtml);
+ * // newSafeHtml is just an alias for fakeSafeHtml, it's passed through by
+ * // goog.html.SafeHtml.htmlEscape() as fakeSafeHtml instanceof
+ * // goog.html.SafeHtml.
+ * </pre>
  *
  * IMPORTANT: The guarantees of the SafeUrl type contract only extend to the
  * behavior of browsers when interpreting URLs. Values of SafeUrl objects MUST
@@ -153,18 +164,21 @@ goog.html.SafeUrl.prototype.getDirection = function() {
 };
 
 
-/**
- * Returns a debug string-representation of this value.
- *
- * To obtain the actual string value wrapped in a SafeUrl, use
- * {@code goog.html.SafeUrl.unwrap}.
- *
- * @see goog.html.SafeUrl#unwrap
- * @override
- */
-goog.html.SafeUrl.prototype.toString = function() {
-  return 'SafeUrl{' + this.privateDoNotAccessOrElseSafeHtmlWrappedValue_ + '}';
-};
+if (goog.DEBUG) {
+  /**
+   * Returns a debug string-representation of this value.
+   *
+   * To obtain the actual string value wrapped in a SafeUrl, use
+   * {@code goog.html.SafeUrl.unwrap}.
+   *
+   * @see goog.html.SafeUrl#unwrap
+   * @override
+   */
+  goog.html.SafeUrl.prototype.toString = function() {
+    return 'SafeUrl{' + this.privateDoNotAccessOrElseSafeHtmlWrappedValue_ +
+        '}';
+  };
+}
 
 
 /**
@@ -200,8 +214,8 @@ goog.html.SafeUrl.unwrap = function(safeUrl) {
   // to stand out in code reviews.
   if (safeUrl instanceof goog.html.SafeUrl &&
       safeUrl.constructor === goog.html.SafeUrl &&
-      safeUrl.SAFE_URL_TYPE_MARKER__GOOG_HTML_SECURITY_PRIVATE_ ===
-          goog.html.SafeUrl.TYPE_MARKER__GOOG_HTML_SECURITY_PRIVATE_) {
+      safeUrl.SAFE_URL_TYPE_MARKER_GOOG_HTML_SECURITY_PRIVATE_ ===
+          goog.html.SafeUrl.TYPE_MARKER_GOOG_HTML_SECURITY_PRIVATE_) {
     return safeUrl.privateDoNotAccessOrElseSafeHtmlWrappedValue_;
   } else {
     goog.asserts.fail('expected object of type SafeUrl, got \'' +
@@ -223,7 +237,7 @@ goog.html.SafeUrl.unwrap = function(safeUrl) {
  * @return {!goog.html.SafeUrl} A SafeUrl object initialized to {@code url}.
  */
 goog.html.SafeUrl.fromConstant = function(url) {
-  return goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse_(
+  return goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse(
       goog.string.Const.unwrap(url));
 };
 
@@ -260,10 +274,11 @@ goog.html.SAFE_URL_PATTERN_ = /^(?:(?:https?|mailto):|[^&:/?#]*(?:[/?#]|$))/i;
 
 
 /**
- * Creates a SafeUrl object from {@code url}. The input string is validated to
- * match a pattern of commonly used safe URLs. The string is converted to
- * UTF-8 and non-whitelisted characters are percent-encoded. The string
- * wrapped by the created SafeUrl will thus contain only ASCII printable
+ * Creates a SafeUrl object from {@code url}. If {@code url} is a
+ * goog.html.SafeUrl then it is simply returned. Otherwise the input string is
+ * validated to match a pattern of commonly used safe URLs. The string is
+ * converted to UTF-8 and non-whitelisted characters are percent-encoded. The
+ * string wrapped by the created SafeUrl will thus contain only ASCII printable
  * characters.
  *
  * {@code url} may be a URL with the http, https, or mailto scheme,
@@ -286,17 +301,20 @@ goog.html.SAFE_URL_PATTERN_ = /^(?:(?:https?|mailto):|[^&:/?#]*(?:[/?#]|$))/i;
  * @return {!goog.html.SafeUrl} The validated URL, wrapped as a SafeUrl.
  */
 goog.html.SafeUrl.sanitize = function(url) {
-  if (url.implementsGoogStringTypedString) {
+  if (url instanceof goog.html.SafeUrl) {
+    return url;
+  }
+  else if (url.implementsGoogStringTypedString) {
     url = url.getTypedStringValue();
   } else {
     url = String(url);
   }
   if (!goog.html.SAFE_URL_PATTERN_.test(url)) {
     url = goog.html.SafeUrl.INNOCUOUS_STRING;
+  } else {
+    url = goog.html.SafeUrl.normalize_(url);
   }
-  url = goog.html.SafeUrl.normalize_(url);
-  return goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse_(
-      url);
+  return goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse(url);
 };
 
 
@@ -347,7 +365,7 @@ goog.html.SafeUrl.NORMALIZE_MATCHER_ = /[()']|%5B|%5D|%25/g;
 
 /**
  * Map of replacements to be done in string generated by encodeURI.
- * @const {!Object.<string, string>}
+ * @const {!Object<string, string>}
  * @private
  */
 goog.html.SafeUrl.NORMALIZE_REPLACER_MAP_ = {
@@ -361,48 +379,22 @@ goog.html.SafeUrl.NORMALIZE_REPLACER_MAP_ = {
 
 
 /**
- * Coerces an arbitrary object into a SafeUrl object.
- *
- * If {@code url} is already of type {@code goog.html.SafeUrl}, the same object
- * is returned. Otherwise, url is coerced to string, and passed through
- * {@code goog.html.SafeUrl.sanitize}.
- *
- * @see goog.html.SafeUrl#sanitize
- * @param {!goog.html.SafeUrl|string|!goog.string.TypedString} url The text
- *     or SafeUrl to coerce.
- * @return {!goog.html.SafeUrl} The resulting SafeUrl object.
- */
-goog.html.SafeUrl.from = function(url) {
-  if (url instanceof goog.html.SafeUrl) {
-    return url;
-  } else {
-    return goog.html.SafeUrl.sanitize(url);
-  }
-};
-
-
-/**
  * Type marker for the SafeUrl type, used to implement additional run-time
  * type checking.
  * @const
  * @private
  */
-goog.html.SafeUrl.TYPE_MARKER__GOOG_HTML_SECURITY_PRIVATE_ = {};
+goog.html.SafeUrl.TYPE_MARKER_GOOG_HTML_SECURITY_PRIVATE_ = {};
 
 
 /**
- * Utility method to create SafeUrl instances.
- *
- * This function is considered "package private", i.e. calls (using "suppress
- * visibility") from other files within this package are considered acceptable.
- * DO NOT call this function from outside the goog.html package; use appropriate
- * wrappers instead.
+ * Package-internal utility method to create SafeUrl instances.
  *
  * @param {string} url The string to initialize the SafeUrl object with.
  * @return {!goog.html.SafeUrl} The initialized SafeUrl object.
- * @private
+ * @package
  */
-goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse_ = function(
+goog.html.SafeUrl.createSafeUrlSecurityPrivateDoNotAccessOrElse = function(
     url) {
   var safeUrl = new goog.html.SafeUrl();
   safeUrl.privateDoNotAccessOrElseSafeHtmlWrappedValue_ = url;

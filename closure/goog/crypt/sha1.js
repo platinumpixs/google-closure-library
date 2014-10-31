@@ -44,21 +44,21 @@ goog.require('goog.crypt.Hash');
  * @struct
  */
 goog.crypt.Sha1 = function() {
-  goog.base(this);
+  goog.crypt.Sha1.base(this, 'constructor');
 
   this.blockSize = 512 / 8;
 
   /**
    * Holds the previous values of accumulated variables a-e in the compress_
    * function.
-   * @type {Array.<number>}
+   * @type {Array<number>}
    * @private
    */
   this.chain_ = [];
 
   /**
    * A buffer holding the partially computed hash result.
-   * @type {Array.<number>}
+   * @type {Array<number>}
    * @private
    */
   this.buf_ = [];
@@ -66,14 +66,14 @@ goog.crypt.Sha1 = function() {
   /**
    * An array of 80 bytes, each a part of the message to be hashed.  Referred to
    * as the message schedule in the docs.
-   * @type {Array.<number>}
+   * @type {Array<number>}
    * @private
    */
   this.W_ = [];
 
   /**
    * Contains data needed to pad messages less than 64 bytes.
-   * @type {Array.<number>}
+   * @type {Array<number>}
    * @private
    */
   this.pad_ = [];
@@ -113,7 +113,7 @@ goog.crypt.Sha1.prototype.reset = function() {
 
 /**
  * Internal compress helper function.
- * @param {Array.<number>|Uint8Array|string} buf Block to compress.
+ * @param {Array<number>|Uint8Array|string} buf Block to compress.
  * @param {number=} opt_offset Offset of the block in the buffer.
  * @private
  */

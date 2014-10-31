@@ -48,7 +48,7 @@ goog.require('goog.testing.stacktrace');
  *                      returns false.  Can be used to disable tests on browsers
  *                      where they aren't expected to pass.
  *
- * Use {@link #autoDiscoverTests}
+ * Use {@link #autoDiscoverLifecycle} and {@link #autoDiscoverTests}
  *
  * @param {string=} opt_name The name of the test case, defaults to
  *     'Untitled Test Case'.
@@ -64,7 +64,7 @@ goog.testing.TestCase = function(opt_name) {
 
   /**
    * Array of test functions that can be executed.
-   * @type {!Array.<!goog.testing.TestCase.Test>}
+   * @type {!Array<!goog.testing.TestCase.Test>}
    * @private
    */
   this.tests_ = [];
@@ -115,7 +115,7 @@ goog.testing.TestCase = function(opt_name) {
 
   /**
    * Object used to encapsulate the test results.
-   * @type {goog.testing.TestCase.Result}
+   * @type {!goog.testing.TestCase.Result}
    * @protected
    * @suppress {underscore|visibility}
    */
@@ -161,7 +161,7 @@ goog.testing.TestCase.prototype.getName = function() {
  * potentially hurting the Selenium test harness.
  * @type {number}
  */
-goog.testing.TestCase.MAX_RUN_TIME = 200;
+goog.testing.TestCase.maxRunTime = 200;
 
 
 /**
@@ -258,7 +258,7 @@ goog.testing.TestCase.prototype.startTime_ = 0;
 
 /**
  * Time since the last batch of tests was started, if batchTime exceeds
- * {@link #MAX_RUN_TIME} a timeout will be used to stop the tests blocking the
+ * {@link #maxRunTime} a timeout will be used to stop the tests blocking the
  * browser and a new batch will be started.
  * @type {number}
  * @private
@@ -315,7 +315,7 @@ goog.testing.TestCase.prototype.addNewTest = function(name, ref, opt_scope) {
 
 /**
  * Sets the tests.
- * @param {!Array.<goog.testing.TestCase.Test>} tests A new test array.
+ * @param {!Array<goog.testing.TestCase.Test>} tests A new test array.
  * @protected
  */
 goog.testing.TestCase.prototype.setTests = function(tests) {
@@ -325,8 +325,7 @@ goog.testing.TestCase.prototype.setTests = function(tests) {
 
 /**
  * Gets the tests.
- * @return {Array.<goog.testing.TestCase.Test>} The test array.
- * @protected
+ * @return {!Array<goog.testing.TestCase.Test>} The test array.
  */
 goog.testing.TestCase.prototype.getTests = function() {
   return this.tests_;
@@ -555,6 +554,16 @@ goog.testing.TestCase.prototype.getReport = function(opt_verbose) {
 
 
 /**
+ * Returns the test results.
+ * @return {!goog.testing.TestCase.Result}
+ * @package
+ */
+goog.testing.TestCase.prototype.getResult = function() {
+  return this.result_;
+};
+
+
+/**
  * Returns the amount of time it took for the test to run.
  * @return {number} The run time, in milliseconds.
  */
@@ -575,7 +584,7 @@ goog.testing.TestCase.prototype.getNumFilesLoaded = function() {
 /**
  * Returns the test results object: a map from test names to a list of test
  * failures (if any exist).
- * @return {!Object.<string, !Array.<string>>} Tests results object.
+ * @return {!Object<string, !Array<string>>} Tests results object.
  */
 goog.testing.TestCase.prototype.getTestResults = function() {
   return this.result_.resultsByName;
@@ -600,7 +609,7 @@ goog.testing.TestCase.prototype.runTests = function() {
 
 /**
  * Reorders the tests depending on the {@code order} field.
- * @param {Array.<goog.testing.TestCase.Test>} tests An array of tests to
+ * @param {Array<goog.testing.TestCase.Test>} tests An array of tests to
  *     reorder.
  * @private
  */
@@ -634,13 +643,17 @@ goog.testing.TestCase.prototype.orderTests_ = function(tests) {
 
 
 /**
- * Gets the object with all globals.
+ * Gets list of objects that potentially contain test cases. For IE 8 and below,
+ * this is the global "this" (for properties set directly on the global this or
+ * window) and the RuntimeObject (for global variables and functions). For all
+ * other browsers, the array simply contains the global this.
+ *
  * @param {string=} opt_prefix An optional prefix. If specified, only get things
  *     under this prefix. Note that the prefix is only honored in IE, since it
  *     supports the RuntimeObject:
  *     http://msdn.microsoft.com/en-us/library/ff521039%28VS.85%29.aspx
- *     TODO: Fix this method to honor the prefix in all browsers.
- * @return {Object} An object with all globals starting with the prefix.
+ *     TODO: Remove this option.
+ * @return {!Array<!Object>} A list of objects that should be inspected.
  */
 goog.testing.TestCase.prototype.getGlobals = function(opt_prefix) {
   return goog.testing.TestCase.getGlobals(opt_prefix);
@@ -648,13 +661,17 @@ goog.testing.TestCase.prototype.getGlobals = function(opt_prefix) {
 
 
 /**
- * Gets the object with all globals.
+ * Gets list of objects that potentially contain test cases. For IE 8 and below,
+ * this is the global "this" (for properties set directly on the global this or
+ * window) and the RuntimeObject (for global variables and functions). For all
+ * other browsers, the array simply contains the global this.
+ *
  * @param {string=} opt_prefix An optional prefix. If specified, only get things
  *     under this prefix. Note that the prefix is only honored in IE, since it
  *     supports the RuntimeObject:
  *     http://msdn.microsoft.com/en-us/library/ff521039%28VS.85%29.aspx
- *     TODO: Fix this method to honor the prefix in all browsers.
- * @return {Object} An object with all globals starting with the prefix.
+ *     TODO: Remove this option.
+ * @return {!Array<!Object>} A list of objects that should be inspected.
  */
 goog.testing.TestCase.getGlobals = function(opt_prefix) {
   // Look in the global scope for most browsers, on IE we use the little known
@@ -662,7 +679,8 @@ goog.testing.TestCase.getGlobals = function(opt_prefix) {
   // via goog.global so that there isn't an aliasing that throws an exception
   // in Firefox.
   return typeof goog.global['RuntimeObject'] != 'undefined' ?
-      goog.global['RuntimeObject']((opt_prefix || '') + '*') : goog.global;
+      [goog.global['RuntimeObject']((opt_prefix || '') + '*'), goog.global] :
+      [goog.global];
 };
 
 
@@ -726,7 +744,7 @@ goog.testing.TestCase.prototype.setBatchTime = function(batchTime) {
  *     function.
  * @param {string} name The name of the function.
  * @param {function() : void} ref The auto-discovered function.
- * @return {goog.testing.TestCase.Test} The newly created test.
+ * @return {!goog.testing.TestCase.Test} The newly created test.
  * @protected
  */
 goog.testing.TestCase.prototype.createTestFromAutoDiscoveredFunction =
@@ -736,40 +754,11 @@ goog.testing.TestCase.prototype.createTestFromAutoDiscoveredFunction =
 
 
 /**
- * Adds any functions defined in the global scope that are prefixed with "test"
- * to the test case.  Also overrides setUp, tearDown, setUpPage, tearDownPage
- * and runTests if they are defined.
+ * Adds any functions defined in the global scope that correspond to
+ * lifecycle events for the test case. Overrides setUp, tearDown, setUpPage,
+ * tearDownPage and runTests if they are defined.
  */
-goog.testing.TestCase.prototype.autoDiscoverTests = function() {
-  var prefix = this.getAutoDiscoveryPrefix();
-  var testSource = this.getGlobals(prefix);
-
-  var foundTests = [];
-
-  for (var name in testSource) {
-
-    try {
-      var ref = testSource[name];
-    } catch (ex) {
-      // NOTE(brenneman): When running tests from a file:// URL on Firefox 3.5
-      // for Windows, any reference to goog.global.sessionStorage raises
-      // an "Operation is not supported" exception. Ignore any exceptions raised
-      // by simply accessing global properties.
-    }
-
-    if ((new RegExp('^' + prefix)).test(name) && goog.isFunction(ref)) {
-      foundTests.push(this.createTestFromAutoDiscoveredFunction(name, ref));
-    }
-  }
-
-  this.orderTests_(foundTests);
-
-  for (var i = 0; i < foundTests.length; i++) {
-    this.add(foundTests[i]);
-  }
-
-  this.log(this.getCount() + ' tests auto-discovered');
-
+goog.testing.TestCase.prototype.autoDiscoverLifecycle = function() {
   if (goog.global['setUp']) {
     this.setUp = goog.bind(goog.global['setUp'], goog.global);
   }
@@ -788,6 +777,53 @@ goog.testing.TestCase.prototype.autoDiscoverTests = function() {
   if (goog.global['shouldRunTests']) {
     this.shouldRunTests = goog.bind(goog.global['shouldRunTests'], goog.global);
   }
+};
+
+
+/**
+ * Adds any functions defined in the global scope that are prefixed with "test"
+ * to the test case.
+ */
+goog.testing.TestCase.prototype.autoDiscoverTests = function() {
+  var prefix = this.getAutoDiscoveryPrefix();
+  var testSources = this.getGlobals(prefix);
+
+  var foundTests = [];
+
+  for (var i = 0; i < testSources.length; i++) {
+    var testSource = testSources[i];
+    for (var name in testSource) {
+      if ((new RegExp('^' + prefix)).test(name)) {
+        var ref;
+        try {
+          ref = testSource[name];
+        } catch (ex) {
+          // NOTE(brenneman): When running tests from a file:// URL on Firefox
+          // 3.5 for Windows, any reference to goog.global.sessionStorage raises
+          // an "Operation is not supported" exception. Ignore any exceptions
+          // raised by simply accessing global properties.
+          ref = undefined;
+        }
+
+        if (goog.isFunction(ref)) {
+          foundTests.push(this.createTestFromAutoDiscoveredFunction(name, ref));
+        }
+      }
+    }
+  }
+
+  this.orderTests_(foundTests);
+
+  for (var i = 0; i < foundTests.length; i++) {
+    this.add(foundTests[i]);
+  }
+
+  this.log(this.getCount() + ' tests auto-discovered');
+
+  // TODO(user): Do this as a separate call. Unfortunately, a lot of projects
+  // currently override autoDiscoverTests and expect lifecycle events to be
+  // registered as a part of this call.
+  this.autoDiscoverLifecycle();
 };
 
 
@@ -814,7 +850,7 @@ goog.testing.TestCase.prototype.maybeFailTestEarly = function(testCase) {
 
 /**
  * Cycles through the tests, breaking out using a setTimeout if the execution
- * time has execeeded {@link #MAX_RUN_TIME}.
+ * time has execeeded {@link #maxRunTime}.
  */
 goog.testing.TestCase.prototype.cycleTests = function() {
   this.saveMessage('Start');
@@ -854,9 +890,9 @@ goog.testing.TestCase.prototype.cycleTests = function() {
     // If the max run time is exceeded call this function again async so as not
     // to block the browser.
     if (this.currentTestPointer_ < this.tests_.length &&
-        this.now() - this.batchTime_ > goog.testing.TestCase.MAX_RUN_TIME) {
+        this.now() - this.batchTime_ > goog.testing.TestCase.maxRunTime) {
       this.saveMessage('Breaking async');
-      this.timeout(goog.bind(this.cycleTests, this), 100);
+      this.timeout(goog.bind(this.cycleTests, this), 0);
       return;
     }
   }
@@ -1007,7 +1043,7 @@ goog.testing.TestCase.prototype.doError = function(test, opt_e) {
  * @param {string} name Failed test name.
  * @param {*=} opt_e The exception object associated with the
  *     failure or a string.
- * @return {goog.testing.TestCase.Error} Error object.
+ * @return {!goog.testing.TestCase.Error} Error object.
  */
 goog.testing.TestCase.prototype.logError = function(name, opt_e) {
   var errMsg = null;
@@ -1133,19 +1169,19 @@ goog.testing.TestCase.Result = function(testCase) {
    * as the key in the map, and the array of strings is an optional list
    * of failure messages. If the array is empty, the test passed. Otherwise,
    * the test failed.
-   * @type {!Object.<string, !Array.<string>>}
+   * @type {!Object<string, !Array<string>>}
    */
   this.resultsByName = {};
 
   /**
    * Errors encountered while running the test.
-   * @type {!Array.<goog.testing.TestCase.Error>}
+   * @type {!Array<goog.testing.TestCase.Error>}
    */
   this.errors = [];
 
   /**
    * Messages to show the user after running the test.
-   * @type {!Array.<string>}
+   * @type {!Array<string>}
    */
   this.messages = [];
 

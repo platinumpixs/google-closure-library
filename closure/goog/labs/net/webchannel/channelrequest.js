@@ -89,7 +89,7 @@ goog.labs.net.webChannel.ChannelRequest = function(channel, channelDebug,
 
   /**
    * An object to keep track of the channel request event listeners.
-   * @private {!goog.events.EventHandler.<
+   * @private {!goog.events.EventHandler<
    *     !goog.labs.net.webChannel.ChannelRequest>}
    */
   this.eventHandler_ = new goog.events.EventHandler(this);
@@ -1207,6 +1207,16 @@ ChannelRequest.prototype.getRequestId = function() {
  */
 ChannelRequest.prototype.getPostData = function() {
   return this.postData_;
+};
+
+
+/**
+ * Returns the XhrIo request object.
+ *
+ * @return {?goog.net.XhrIo} Any XhrIo request created for this object.
+ */
+ChannelRequest.prototype.getXhr = function() {
+  return this.xmlHttp_;
 };
 
 

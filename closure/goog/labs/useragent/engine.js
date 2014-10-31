@@ -49,7 +49,7 @@ goog.labs.userAgent.engine.isTrident = function() {
  * @return {boolean} Whether the rendering engine is WebKit.
  */
 goog.labs.userAgent.engine.isWebKit = function() {
-  return goog.labs.userAgent.util.matchUserAgent('WebKit');
+  return goog.labs.userAgent.util.matchUserAgentIgnoreCase('WebKit');
 };
 
 
@@ -113,7 +113,7 @@ goog.labs.userAgent.engine.isVersionOrHigher = function(version) {
 
 
 /**
- * @param {!Array.<!Array.<string>>} tuples Version tuples.
+ * @param {!Array<!Array<string>>} tuples Version tuples.
  * @param {string} key The key to look for.
  * @return {string} The version string of the given key, if present.
  *     Otherwise, the empty string.

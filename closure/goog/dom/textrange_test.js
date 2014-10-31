@@ -216,7 +216,7 @@ function testGetStartPositionRightToLeft() {
 
   try {
     var result = assertNotThrows(goog.bind(range.getStartPosition, range));
-    assertObjectEquals(topLeft, result);
+    assertObjectRoughlyEquals(topLeft, result, 0.1);
   } catch (e) {
     expectedFailures.handleException(e);
   }
@@ -320,4 +320,14 @@ function testGetEndPositionRightToLeft() {
   } catch (e) {
     expectedFailures.handleException(e);
   }
+}
+
+function testCloneRangeDeep() {
+  var range = goog.dom.TextRange.createFromNodeContents(logo);
+  assertFalse(range.isCollapsed());
+
+  var cloned = range.clone();
+  cloned.collapse();
+  assertTrue(cloned.isCollapsed());
+  assertFalse(range.isCollapsed());
 }

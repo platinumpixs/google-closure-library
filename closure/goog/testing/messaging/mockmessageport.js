@@ -34,7 +34,7 @@ goog.require('goog.events.EventTarget');
  * @final
  */
 goog.testing.messaging.MockMessagePort = function(id, mockControl) {
-  goog.base(this);
+  goog.testing.messaging.MockMessagePort.base(this, 'constructor');
 
   /**
    * An opaque identifier, used because message ports otherwise have no
@@ -64,7 +64,7 @@ goog.inherits(goog.testing.messaging.MockMessagePort, goog.events.EventTarget);
  * A mock postMessage funciton. Actually an instance of
  * {@link goog.testing.FunctionMock}.
  * @param {*} message The message to send.
- * @param {Array.<MessagePort>=} opt_ports Ports to send with the message.
+ * @param {Array<MessagePort>=} opt_ports Ports to send with the message.
  */
 goog.testing.messaging.MockMessagePort.prototype.postMessage = function(
     message, opt_ports) {};

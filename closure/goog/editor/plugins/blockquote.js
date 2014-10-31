@@ -15,6 +15,7 @@
 /**
  * @fileoverview goog.editor plugin to handle splitting block quotes.
  *
+ * @author robbyw@google.com (Robby Walker)
  */
 
 goog.provide('goog.editor.plugins.Blockquote');
@@ -226,7 +227,7 @@ goog.editor.plugins.Blockquote.findAndRemoveSingleChildAncestor_ = function(
 
 /**
  * Remove every nodes from the DOM tree that are all white space nodes.
- * @param {Array.<Node>} nodes Nodes to be checked.
+ * @param {Array<Node>} nodes Nodes to be checked.
  * @private
  */
 goog.editor.plugins.Blockquote.removeAllWhiteSpaceNodes_ = function(nodes) {
@@ -250,10 +251,10 @@ goog.editor.plugins.Blockquote.prototype.isSupportedCommand = function(
  * function returns true, the event that caused it to be called should be
  * canceled.
  * @param {string} command The command to execute.
- * @param {...*} var_args Single additional argument representing the
- *     current cursor position.  In IE, it is a single node.  In any other
- *     browser, it is an object with a {@code node} key and an {@code offset}
- *     key.
+ * @param {...*} var_args Single additional argument representing the current
+ *     cursor position. If BrowserFeature.HAS_W3C_RANGES it is an object with a
+ *     {@code node} key and an {@code offset} key. In other cases (legacy IE)
+ *     it is a single node.
  * @return {boolean|undefined} Boolean true when the quoted region has been
  *     split, false or undefined otherwise.
  * @override

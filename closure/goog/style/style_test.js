@@ -23,6 +23,7 @@ goog.require('goog.array');
 goog.require('goog.color');
 goog.require('goog.dom');
 goog.require('goog.events.BrowserEvent');
+goog.require('goog.labs.userAgent.util');
 goog.require('goog.math.Box');
 goog.require('goog.math.Coordinate');
 goog.require('goog.math.Rect');
@@ -31,12 +32,11 @@ goog.require('goog.object');
 goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.testing.ExpectedFailures');
-goog.require('goog.testing.PropertyReplacer');
+goog.require('goog.testing.MockUserAgent');
 goog.require('goog.testing.asserts');
 goog.require('goog.testing.jsunit');
 goog.require('goog.userAgent');
 goog.require('goog.userAgent.product');
-goog.require('goog.userAgent.product.isVersion');
 goog.require('goog.userAgentTestUtil');
 goog.require('goog.userAgentTestUtil.UserAgents');
 
@@ -49,8 +49,7 @@ var isBorderBox = goog.dom.isCss1CompatMode() ?
 var EPSILON = 2;
 var expectedFailures = new goog.testing.ExpectedFailures();
 var $ = goog.dom.getElement;
-var propertyReplacer = new goog.testing.PropertyReplacer();
-
+var mockUserAgent;
 
 function setUpPage() {
   var viewportSize = goog.dom.getViewportSize();
@@ -68,6 +67,9 @@ function setUpPage() {
 
 function setUp() {
   window.scrollTo(0, 0);
+  goog.userAgentTestUtil.reinitializeUserAgent();
+  mockUserAgent = new goog.testing.MockUserAgent();
+  mockUserAgent.install();
 }
 
 function tearDown() {
@@ -78,8 +80,7 @@ function tearDown() {
   var testViewport = goog.dom.getElement('test-viewport');
   testViewport.setAttribute('style', '');
   testViewport.innerHTML = '';
-  propertyReplacer.reset();
-  goog.userAgentTestUtil.reinitializeUserAgent();
+  goog.dispose(mockUserAgent);
 }
 
 function testSetStyle() {
@@ -132,8 +133,9 @@ function testGetStyleMsFilter() {
   // Element with -ms-filter style set.
   var e = goog.dom.getElement('msFilter');
 
-  if (goog.userAgent.IE && goog.userAgent.isDocumentModeOrHigher(8)) {
-    // Only IE8 supports -ms-filter and returns it as value for the "filter"
+  if (goog.userAgent.IE && goog.userAgent.isDocumentModeOrHigher(8) &&
+      !goog.userAgent.isDocumentModeOrHigher(10)) {
+    // Only IE8/9 supports -ms-filter and returns it as value for the "filter"
     // property. When in compatibility mode, -ms-filter is not supported
     // and IE8 behaves as IE7 so the other case will apply.
     assertEquals('alpha(opacity=0)', goog.style.getStyle(e, 'filter'));
@@ -147,7 +149,7 @@ function testGetStyleFilter() {
   // Element with filter style set.
   var e = goog.dom.getElement('filter');
 
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.IE && !goog.userAgent.isDocumentModeOrHigher(10)) {
     // Filter supported.
     assertEquals('alpha(opacity=0)', goog.style.getStyle(e, 'filter'));
   } else {
@@ -159,9 +161,15 @@ function testGetComputedStyleMsFilter() {
   // Element with -ms-filter style set.
   var e = goog.dom.getElement('msFilter');
 
-  if (goog.userAgent.IE) {
-    // IE always returns empty string for computed styles.
-    assertEquals('', goog.style.getComputedStyle(e, 'filter'));
+  if (goog.userAgent.IE && !goog.userAgent.isDocumentModeOrHigher(10)) {
+    if (goog.userAgent.isDocumentModeOrHigher(9)) {
+      // IE 9 returns the value.
+      assertEquals('alpha(opacity=0)',
+          goog.style.getComputedStyle(e, 'filter'));
+    } else {
+      // Older IE always returns empty string for computed styles.
+      assertEquals('', goog.style.getComputedStyle(e, 'filter'));
+    }
   } else {
     // Non IE returns 'none' for filter as it is an SVG property
     assertEquals('none', goog.style.getComputedStyle(e, 'filter'));
@@ -172,9 +180,15 @@ function testGetComputedStyleFilter() {
   // Element with filter style set.
   var e = goog.dom.getElement('filter');
 
-  if (goog.userAgent.IE) {
-    // IE always returns empty string for computed styles.
-    assertEquals('', goog.style.getComputedStyle(e, 'filter'));
+  if (goog.userAgent.IE && !goog.userAgent.isDocumentModeOrHigher(10)) {
+    if (goog.userAgent.isDocumentModeOrHigher(9)) {
+      // IE 9 returns the value.
+      assertEquals('alpha(opacity=0)',
+          goog.style.getComputedStyle(e, 'filter'));
+    } else {
+      // Older IE always returns empty string for computed styles.
+      assertEquals('', goog.style.getComputedStyle(e, 'filter'));
+    }
   } else {
     // Non IE returns 'none' for filter as it is an SVG property
     assertEquals('none', goog.style.getComputedStyle(e, 'filter'));
@@ -202,7 +216,8 @@ function testGetComputedPosition() {
                goog.style.getComputedPosition($('position-unset')));
   assertEquals('position:relative in style attribute', 'relative',
                goog.style.getComputedPosition($('style-position-relative')));
-  if (goog.userAgent.IE && !goog.dom.isCss1CompatMode()) {
+  if (goog.userAgent.IE && !goog.dom.isCss1CompatMode() &&
+      !goog.userAgent.isVersionOrHigher(10)) {
     assertEquals('position:fixed in style attribute', 'static',
         goog.style.getComputedPosition($('style-position-fixed')));
   } else {
@@ -403,6 +418,20 @@ function testGetClientPositionTouchEvent() {
   mockTouchEvent.touches = [{}];
   mockTouchEvent.touches[0].clientX = 100;
   mockTouchEvent.touches[0].clientY = 200;
+
+  var pos = goog.style.getClientPosition(mockTouchEvent);
+  assertEquals(100, pos.x);
+  assertEquals(200, pos.y);
+}
+
+function testGetClientPositionEmptyTouchList() {
+  var mockTouchEvent = {};
+
+  mockTouchEvent.clientX = 100;
+  mockTouchEvent.clientY = 200;
+
+  mockTouchEvent.targetTouches = [];
+  mockTouchEvent.touches = [];
 
   var pos = goog.style.getClientPosition(mockTouchEvent);
   assertEquals(100, pos.x);
@@ -760,35 +789,30 @@ function testGetSizeSvgElements() {
 
   svgEl.appendChild(el);
 
+  // The bounding size in 1 larger than the SVG element in IE.
+  var expectedWidth = (goog.userAgent.IE) ? 33 : 32;
+  var expectedHeight = (goog.userAgent.IE) ? 22 : 21;
+
   var dims = goog.style.getSize(el);
-  assertEquals(32, dims.width);
-  assertRoughlyEquals(21, dims.height, 0.01);
+  assertEquals(expectedWidth, dims.width);
+  assertRoughlyEquals(expectedHeight, dims.height, 0.01);
 
   dims = goog.style.getSize(svgEl);
-  if (goog.userAgent.WEBKIT) {
-    // The size of the <svg> will be the viewport size on WebKit browsers.
-    assertTrue(dims.width >= 32);
-    assertTrue(dims.height >= 21);
-  } else {
-    assertEquals(32, dims.width);
-    assertRoughlyEquals(21, dims.height, 0.01);
-  }
+  // The size of the <svg> will be the viewport size on all browsers. This used
+  // to not be true for Firefox, but they fixed the glitch in Firefox 33.
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=530985
+  assertTrue(dims.width >= expectedWidth);
+  assertTrue(dims.height >= expectedHeight);
 
   el.style.visibility = 'none';
 
   dims = goog.style.getSize(el);
-  assertEquals(32, dims.width);
-  assertRoughlyEquals(21, dims.height, 0.01);
+  assertEquals(expectedWidth, dims.width);
+  assertRoughlyEquals(expectedHeight, dims.height, 0.01);
 
   dims = goog.style.getSize(svgEl);
-  if (goog.userAgent.WEBKIT) {
-    // The size of the <svg> will be the viewport size on WebKit browsers.
-    assertTrue(dims.width >= 32);
-    assertTrue(dims.height >= 21);
-  } else {
-    assertEquals(32, dims.width);
-    assertRoughlyEquals(21, dims.height, 0.01);
-  }
+  assertTrue(dims.width >= expectedWidth);
+  assertTrue(dims.height >= expectedHeight);
 }
 
 function testGetSizeSvgDocument() {
@@ -805,8 +829,13 @@ function testGetSizeSvgDocument() {
   var doc = goog.dom.getFrameContentDocument(frame);
   var rect = doc.getElementById('rect');
   var dims = goog.style.getSize(rect);
-  assertEquals(50, dims.width);
-  assertEquals(50, dims.height);
+  if (!goog.userAgent.IE) {
+    assertEquals(50, dims.width);
+    assertEquals(50, dims.height);
+  } else {
+    assertEquals(51, dims.width);
+    assertEquals(51, dims.height);
+  }
 }
 
 function testGetSizeInlineBlock() {
@@ -1409,6 +1438,16 @@ function testGetFontFamily() {
   assertEquals('An element with nested content should be unaffected.',
                'Arial',
                tmpFont);
+  // IE raises an 'Invalid Argument' error when using the moveToElementText
+  // method from the TextRange object with an element that is not attached to
+  // a document.
+  var element = goog.dom.createDom('span',
+      {style: 'font-family:Times,sans-serif;'}, 'some text');
+  tmpFont = goog.style.getFontFamily(element);
+  assertEquals('Font should be correctly retrieved for element not attached' +
+               ' to a document',
+               'Times',
+               tmpFont);
 }
 
 function testGetFontSize() {
@@ -1774,7 +1813,7 @@ function testGetVisibleRectForElement() {
   visible = goog.style.getVisibleRectForElement(el);
 
   var iframeViewportSize = goog.dom.getDomHelper(el).getViewportSize();
-  // NOTE(user): For iframe, the clipping viewport is always the iframe
+  // NOTE(chrishenry): For iframe, the clipping viewport is always the iframe
   // viewport, and not the actual browser viewport.
   assertNotNull(visible);
   assertEquals(0, visible.top);
@@ -2115,9 +2154,15 @@ function testGetViewportPageOffset() {
 function testGetsTranslation() {
   var element = document.getElementById('translation');
 
-  expectedFailures.expectFailureFor(
-      goog.userAgent.IE && !goog.userAgent.product.isVersion(9),
-      'CSS transforms were only introduced in IE9');
+  if (goog.userAgent.IE) {
+    if (!goog.userAgent.isDocumentModeOrHigher(9) ||
+        (!goog.dom.isCss1CompatMode() &&
+            !goog.userAgent.isDocumentModeOrHigher(10))) {
+      // 'CSS transforms were introduced in IE9, but only in standards mode
+      // later browsers support the translations in quirks mode.
+      return;
+    }
+  }
 
   // First check the element is actually translated, and we haven't missed
   // one of the vendor-specific transform properties
@@ -2125,30 +2170,32 @@ function testGetsTranslation() {
   var translation = goog.style.getCssTranslation(element);
   var expectedTranslation = new goog.math.Coordinate(20, 30);
 
-  expectedFailures.run(function() {
-    assertEquals(30, position.x);
-    assertRoughlyEquals(40, position.y, .1);
-    assertObjectEquals(expectedTranslation, translation);
-  });
+  assertEquals(30, position.x);
+  assertRoughlyEquals(40, position.y, .1);
+  assertObjectEquals(expectedTranslation, translation);
 }
 
 
 /**
  * Test browser detection for a user agent configuration.
- * @param {Array.<number>} expectedAgents Array of expected userAgents.
+ * @param {Array<number>} expectedAgents Array of expected userAgents.
  * @param {string} uaString User agent string.
  * @param {string=} opt_product Navigator product string.
  * @param {string=} opt_vendor Navigator vendor string.
  */
 function assertUserAgent(expectedAgents, uaString, opt_product, opt_vendor) {
-  var mockGlobal = {
-    'navigator': {
-      'userAgent': uaString,
-      'product': opt_product,
-      'vendor': opt_vendor
-    }
+
+  var mockNavigator = {
+    'userAgent': uaString,
+    'product': opt_product,
+    'vendor': opt_vendor
   };
-  propertyReplacer.set(goog, 'global', mockGlobal);
+
+  mockUserAgent.setNavigator(mockNavigator);
+  mockUserAgent.setUserAgentString(uaString);
+
+  // Force User-Agent lib to reread the global userAgent.
+  goog.labs.userAgent.util.setUserAgent(null);
 
   goog.userAgentTestUtil.reinitializeUserAgent();
   for (var ua in goog.userAgentTestUtil.UserAgents) {
@@ -2169,13 +2216,13 @@ function assertUserAgent(expectedAgents, uaString, opt_product, opt_vendor) {
 function testGetVendorStyleNameWebkit() {
   var mockElement = {
     'style': {
-      'WebkitTransform': ''
+      'WebkitTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.WEBKIT], 'WebKit');
-  assertEquals('-webkit-transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+  assertEquals('-webkit-transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2186,15 +2233,15 @@ function testGetVendorStyleNameWebkit() {
 function testGetVendorStyleNameWebkitNoPrefix() {
   var mockElement = {
     'style': {
-      'WebkitTransform': '',
-      'transform': ''
+      'WebkitTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.WEBKIT], 'WebKit');
   assertEquals(
-      'transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+      'transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2205,13 +2252,13 @@ function testGetVendorStyleNameWebkitNoPrefix() {
 function testGetVendorStyleNameGecko() {
   var mockElement = {
     'style': {
-      'MozTransform': ''
+      'MozTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.GECKO], 'Gecko', 'Gecko');
-  assertEquals('-moz-transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+  assertEquals('-moz-transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2222,15 +2269,15 @@ function testGetVendorStyleNameGecko() {
 function testGetVendorStyleNameGeckoNoPrefix() {
   var mockElement = {
     'style': {
-      'MozTransform': '',
-      'transform': ''
+      'MozTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.GECKO], 'Gecko', 'Gecko');
   assertEquals(
-      'transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+      'transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2241,13 +2288,13 @@ function testGetVendorStyleNameGeckoNoPrefix() {
 function testGetVendorStyleNameIE() {
   var mockElement = {
     'style': {
-      'msTransform': ''
+      'msTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.IE], 'MSIE');
-  assertEquals('-ms-transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+  assertEquals('-ms-transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2258,15 +2305,15 @@ function testGetVendorStyleNameIE() {
 function testGetVendorStyleNameIENoPrefix() {
   var mockElement = {
     'style': {
-      'msTransform': '',
-      'transform': ''
+      'msTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.IE], 'MSIE');
   assertEquals(
-      'transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+      'transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2277,13 +2324,13 @@ function testGetVendorStyleNameIENoPrefix() {
 function testGetVendorStyleNameOpera() {
   var mockElement = {
     'style': {
-      'OTransform': ''
+      'OTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.OPERA], 'Opera');
-  assertEquals('-o-transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+  assertEquals('-o-transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2294,15 +2341,15 @@ function testGetVendorStyleNameOpera() {
 function testGetVendorStyleNameOperaNoPrefix() {
   var mockElement = {
     'style': {
-      'OTransform': '',
-      'transform': ''
+      'OTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.OPERA], 'Opera');
   assertEquals(
-      'transform',
-      goog.style.getVendorStyleName_(mockElement, 'transform'));
+      'transform-origin',
+      goog.style.getVendorStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2313,13 +2360,13 @@ function testGetVendorStyleNameOperaNoPrefix() {
 function testGetVendorJsStyleNameWebkit() {
   var mockElement = {
     'style': {
-      'WebkitTransform': ''
+      'WebkitTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.WEBKIT], 'WebKit');
-  assertEquals('WebkitTransform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+  assertEquals('WebkitTransformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2330,15 +2377,15 @@ function testGetVendorJsStyleNameWebkit() {
 function testGetVendorJsStyleNameWebkitNoPrefix() {
   var mockElement = {
     'style': {
-      'WebkitTransform': '',
-      'transform': ''
+      'WebkitTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.WEBKIT], 'WebKit');
   assertEquals(
-      'transform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+      'transformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2349,13 +2396,13 @@ function testGetVendorJsStyleNameWebkitNoPrefix() {
 function testGetVendorJsStyleNameGecko() {
   var mockElement = {
     'style': {
-      'MozTransform': ''
+      'MozTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.GECKO], 'Gecko', 'Gecko');
-  assertEquals('MozTransform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+  assertEquals('MozTransformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2366,15 +2413,15 @@ function testGetVendorJsStyleNameGecko() {
 function testGetVendorJsStyleNameGeckoNoPrefix() {
   var mockElement = {
     'style': {
-      'MozTransform': '',
-      'transform': ''
+      'MozTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.GECKO], 'Gecko', 'Gecko');
   assertEquals(
-      'transform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+      'transformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2385,13 +2432,13 @@ function testGetVendorJsStyleNameGeckoNoPrefix() {
 function testGetVendorJsStyleNameIE() {
   var mockElement = {
     'style': {
-      'msTransform': ''
+      'msTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.IE], 'MSIE');
-  assertEquals('msTransform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+  assertEquals('msTransformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2402,15 +2449,15 @@ function testGetVendorJsStyleNameIE() {
 function testGetVendorJsStyleNameIENoPrefix() {
   var mockElement = {
     'style': {
-      'msTransform': '',
-      'transform': ''
+      'msTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.IE], 'MSIE');
   assertEquals(
-      'transform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+      'transformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2421,13 +2468,13 @@ function testGetVendorJsStyleNameIENoPrefix() {
 function testGetVendorJsStyleNameOpera() {
   var mockElement = {
     'style': {
-      'OTransform': ''
+      'OTransformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.OPERA], 'Opera');
-  assertEquals('OTransform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+  assertEquals('OTransformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 
@@ -2438,15 +2485,15 @@ function testGetVendorJsStyleNameOpera() {
 function testGetVendorJsStyleNameOperaNoPrefix() {
   var mockElement = {
     'style': {
-      'OTransform': '',
-      'transform': ''
+      'OTransformOrigin': '',
+      'transformOrigin': ''
     }
   };
 
   assertUserAgent([goog.userAgentTestUtil.UserAgents.OPERA], 'Opera');
   assertEquals(
-      'transform',
-      goog.style.getVendorJsStyleName_(mockElement, 'transform'));
+      'transformOrigin',
+      goog.style.getVendorJsStyleName_(mockElement, 'transform-origin'));
 }
 
 

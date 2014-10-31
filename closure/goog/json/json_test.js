@@ -280,23 +280,16 @@ function testBooleanUnsafeParse() {
 }
 
 function testArrayParse() {
-  function arrayEquals(a1, a2) {
-    if (a1.length != a2.length) {
-      return false;
-    }
-    for (var i = 0; i < a1.length; i++) {
-      if (a1[i] != a2[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
+  assertArrayEquals([], goog.json.parse('[]'));
+  assertArrayEquals([1], goog.json.parse('[1]'));
+  assertArrayEquals([1, 2], goog.json.parse('[1,2]'));
+  assertArrayEquals([1, 2, 3], goog.json.parse('[1,2,3]'));
+  assertArrayEquals([[]], goog.json.parse('[[]]'));
 
-  assertTrue('[]', arrayEquals(goog.json.parse('[]'), []));
-  assertTrue('[1]', arrayEquals(goog.json.parse('[1]'), [1]));
-  assertTrue('[1,2]', arrayEquals(goog.json.parse('[1,2]'), [1, 2]));
-  assertTrue('[1,2,3]', arrayEquals(goog.json.parse('[1,2,3]'), [1, 2, 3]));
-  assertTrue('[[]]', arrayEquals(goog.json.parse('[[]]')[0], []));
+  // Note that array-holes are not valid json. However, goog.json.parse
+  // supports them so that clients can reap the security benefits of
+  // goog.json.parse even if they are using this non-standard format.
+  assertArrayEquals([1, /* hole */, 3], goog.json.parse('[1,,3]'));
 
   // make sure we do not get an array for something that looks like an array
   assertFalse('{length:0}', 'push' in goog.json.parse('{"length":0}'));
@@ -389,70 +382,70 @@ function testForValidJson() {
 }
 
 function testIsNotValid() {
-  assertFalse(goog.json.isValid_('t'));
-  assertFalse(goog.json.isValid_('r'));
-  assertFalse(goog.json.isValid_('u'));
-  assertFalse(goog.json.isValid_('e'));
-  assertFalse(goog.json.isValid_('f'));
-  assertFalse(goog.json.isValid_('a'));
-  assertFalse(goog.json.isValid_('l'));
-  assertFalse(goog.json.isValid_('s'));
-  assertFalse(goog.json.isValid_('n'));
-  assertFalse(goog.json.isValid_('E'));
+  assertFalse(goog.json.isValid('t'));
+  assertFalse(goog.json.isValid('r'));
+  assertFalse(goog.json.isValid('u'));
+  assertFalse(goog.json.isValid('e'));
+  assertFalse(goog.json.isValid('f'));
+  assertFalse(goog.json.isValid('a'));
+  assertFalse(goog.json.isValid('l'));
+  assertFalse(goog.json.isValid('s'));
+  assertFalse(goog.json.isValid('n'));
+  assertFalse(goog.json.isValid('E'));
 
-  assertFalse(goog.json.isValid_('+'));
-  assertFalse(goog.json.isValid_('-'));
+  assertFalse(goog.json.isValid('+'));
+  assertFalse(goog.json.isValid('-'));
 
-  assertFalse(goog.json.isValid_('t++'));
-  assertFalse(goog.json.isValid_('++t'));
-  assertFalse(goog.json.isValid_('t--'));
-  assertFalse(goog.json.isValid_('--t'));
-  assertFalse(goog.json.isValid_('-t'));
-  assertFalse(goog.json.isValid_('+t'));
+  assertFalse(goog.json.isValid('t++'));
+  assertFalse(goog.json.isValid('++t'));
+  assertFalse(goog.json.isValid('t--'));
+  assertFalse(goog.json.isValid('--t'));
+  assertFalse(goog.json.isValid('-t'));
+  assertFalse(goog.json.isValid('+t'));
 
-  assertFalse(goog.json.isValid_('"\\"')); // "\"
-  assertFalse(goog.json.isValid_('"\\'));  // "\
+  assertFalse(goog.json.isValid('"\\"')); // "\"
+  assertFalse(goog.json.isValid('"\\'));  // "\
 
   // multiline string using \ at the end is not valid
-  assertFalse(goog.json.isValid_('"a\\\nb"'));
+  assertFalse(goog.json.isValid('"a\\\nb"'));
 
 
-  assertFalse(goog.json.isValid_('"\n"'));
-  assertFalse(goog.json.isValid_('"\r"'));
-  assertFalse(goog.json.isValid_('"\r\n"'));
+  assertFalse(goog.json.isValid('"\n"'));
+  assertFalse(goog.json.isValid('"\r"'));
+  assertFalse(goog.json.isValid('"\r\n"'));
   // Disallow the unicode newlines
-  assertFalse(goog.json.isValid_('"\u2028"'));
-  assertFalse(goog.json.isValid_('"\u2029"'));
+  assertFalse(goog.json.isValid('"\u2028"'));
+  assertFalse(goog.json.isValid('"\u2029"'));
 
-  assertFalse(goog.json.isValid_(' '));
-  assertFalse(goog.json.isValid_('\n'));
-  assertFalse(goog.json.isValid_('\r'));
-  assertFalse(goog.json.isValid_('\r\n'));
+  assertFalse(goog.json.isValid(' '));
+  assertFalse(goog.json.isValid('\n'));
+  assertFalse(goog.json.isValid('\r'));
+  assertFalse(goog.json.isValid('\r\n'));
 
-  assertFalse(goog.json.isValid_('t.r'));
+  assertFalse(goog.json.isValid('t.r'));
 
-  assertFalse(goog.json.isValid_('1e'));
-  assertFalse(goog.json.isValid_('1e-'));
-  assertFalse(goog.json.isValid_('1e+'));
+  assertFalse(goog.json.isValid('1e'));
+  assertFalse(goog.json.isValid('1e-'));
+  assertFalse(goog.json.isValid('1e+'));
 
-  assertFalse(goog.json.isValid_('1e-'));
+  assertFalse(goog.json.isValid('1e-'));
 
-  assertFalse(goog.json.isValid_('"\\\u200D\\"'));
-  assertFalse(goog.json.isValid_('"\\\0\\"'));
-  assertFalse(goog.json.isValid_('"\\\0"'));
-  assertFalse(goog.json.isValid_('"\\0"'));
-  assertFalse(goog.json.isValid_('"\x0c"'));
+  assertFalse(goog.json.isValid('"\\\u200D\\"'));
+  assertFalse(goog.json.isValid('"\\\0\\"'));
+  assertFalse(goog.json.isValid('"\\\0"'));
+  assertFalse(goog.json.isValid('"\\0"'));
+  assertFalse(goog.json.isValid('"\x0c"'));
 
-  assertFalse(goog.json.isValid_('"\\\u200D\\", alert(\'foo\') //"\n'));
+  assertFalse(goog.json.isValid('"\\\u200D\\", alert(\'foo\') //"\n'));
 }
 
 function testIsValid() {
-  assertTrue(goog.json.isValid_('\n""\n'));
-  assertTrue(goog.json.isValid_('[1\n,2\r,3\u2028\n,4\u2029]'));
-  assertTrue(goog.json.isValid_('"\x7f"'));
-  assertTrue(goog.json.isValid_('"\x09"'));
+  assertTrue(goog.json.isValid('\n""\n'));
+  assertTrue(goog.json.isValid('[1\n,2\r,3\u2028\n,4\u2029]'));
+  assertTrue(goog.json.isValid('"\x7f"'));
+  assertTrue(goog.json.isValid('"\x09"'));
   // Test tab characters in json.
-  assertTrue(goog.json.isValid_('{"\t":"\t"}'));
+  assertTrue(goog.json.isValid('{"\t":"\t"}'));
 }
 
 function testDoNotSerializeProto() {

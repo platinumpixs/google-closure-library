@@ -69,6 +69,9 @@ goog.fx.Dragger = function(target, opt_handle, opt_limits) {
       this.startDrag, false, this);
 };
 goog.inherits(goog.fx.Dragger, goog.events.EventTarget);
+// Dragger is meant to be extended, but defines most properties on its
+// prototype, thus making it unsuitable for sealing.
+goog.tagUnsealableClass(goog.fx.Dragger);
 
 
 /**
@@ -89,7 +92,7 @@ goog.fx.Dragger.HAS_SET_CAPTURE_ =
  * cursor itself.
  *
  * @param {Element} sourceEl Element to copy.
- * @return {Element} The clone of {@code sourceEl}.
+ * @return {!Element} The clone of {@code sourceEl}.
  */
 goog.fx.Dragger.cloneNode = function(sourceEl) {
   var clonedEl = /** @type {Element} */ (sourceEl.cloneNode(true)),
@@ -313,12 +316,15 @@ goog.fx.Dragger.prototype.enableRightPositioningForRtl =
 
 /**
  * Returns the event handler, intended for subclass use.
- * @return {goog.events.EventHandler.<T>} The event handler.
+ * @return {!goog.events.EventHandler<T>} The event handler.
  * @this T
  * @template T
  */
 goog.fx.Dragger.prototype.getHandler = function() {
-  return this.eventHandler_;
+  // TODO(user): templated "this" values currently result in "this" being
+  // "unknown" in the body of the function.
+  var self = /** @type {goog.fx.Dragger} */ (this);
+  return self.eventHandler_;
 };
 
 
@@ -650,7 +656,7 @@ goog.fx.Dragger.prototype.handleMove_ = function(e) {
  *
  * @param {number} dx The horizontal movement delta.
  * @param {number} dy The vertical movement delta.
- * @return {goog.math.Coordinate} The newly calculated drag element position.
+ * @return {!goog.math.Coordinate} The newly calculated drag element position.
  * @private
  */
 goog.fx.Dragger.prototype.calculatePosition_ = function(dx, dy) {

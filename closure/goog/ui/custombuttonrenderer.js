@@ -22,6 +22,7 @@
 goog.provide('goog.ui.CustomButtonRenderer');
 
 goog.require('goog.a11y.aria.Role');
+goog.require('goog.asserts');
 goog.require('goog.dom.NodeType');
 goog.require('goog.dom.classlist');
 goog.require('goog.string');
@@ -64,7 +65,7 @@ goog.ui.CustomButtonRenderer.CSS_CLASS = goog.getCssName('goog-custom-button');
  *    </div>
  * Overrides {@link goog.ui.ButtonRenderer#createDom}.
  * @param {goog.ui.Control} control goog.ui.Button to render.
- * @return {Element} Root element for the button.
+ * @return {!Element} Root element for the button.
  * @override
  */
 goog.ui.CustomButtonRenderer.prototype.createDom = function(control) {
@@ -103,7 +104,8 @@ goog.ui.CustomButtonRenderer.prototype.getAriaRole = function() {
  * @override
  */
 goog.ui.CustomButtonRenderer.prototype.getContentElement = function(element) {
-  return element && /** @type {Element} */ (element.firstChild.firstChild);
+  return element && element.firstChild &&
+      /** @type {Element} */ (element.firstChild.firstChild);
 };
 
 
@@ -181,6 +183,8 @@ goog.ui.CustomButtonRenderer.prototype.hasBoxStructure = function(
  * @override
  */
 goog.ui.CustomButtonRenderer.prototype.decorate = function(control, element) {
+  goog.asserts.assert(element);
+
   var button = /** @type {goog.ui.Button} */ (control);
   // Trim text nodes in the element's child node list; otherwise madness
   // ensues (i.e. on Gecko, buttons will flicker and shift when moused over).

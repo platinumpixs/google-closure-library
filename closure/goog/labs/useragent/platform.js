@@ -48,7 +48,8 @@ goog.labs.userAgent.platform.isIpod = function() {
  */
 goog.labs.userAgent.platform.isIphone = function() {
   return goog.labs.userAgent.util.matchUserAgent('iPhone') &&
-      !goog.labs.userAgent.util.matchUserAgent('iPod');
+      !goog.labs.userAgent.util.matchUserAgent('iPod') &&
+      !goog.labs.userAgent.util.matchUserAgent('iPad');
 };
 
 
@@ -115,7 +116,7 @@ goog.labs.userAgent.platform.getVersion = function() {
   var userAgentString = goog.labs.userAgent.util.getUserAgent();
   var version = '', re;
   if (goog.labs.userAgent.platform.isWindows()) {
-    re = /Windows NT ([0-9.]+)/;
+    re = /Windows (?:NT|Phone) ([0-9.]+)/;
     var match = re.exec(userAgentString);
     if (match) {
       version = match[1];
