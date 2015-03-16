@@ -140,10 +140,12 @@ goog.require('goog.Uri');
 goog.require('goog.asserts');
 goog.require('goog.debug');
 goog.require('goog.dom');
+goog.require('goog.dom.safe');
 goog.require('goog.events');
 goog.require('goog.events.Event');
 goog.require('goog.events.EventTarget');
 goog.require('goog.events.EventType');
+goog.require('goog.html.uncheckedconversions');
 goog.require('goog.json');
 goog.require('goog.log');
 goog.require('goog.log.Level');
@@ -151,6 +153,7 @@ goog.require('goog.net.ErrorCode');
 goog.require('goog.net.EventType');
 goog.require('goog.reflect');
 goog.require('goog.string');
+goog.require('goog.string.Const');
 goog.require('goog.structs');
 goog.require('goog.userAgent');
 
@@ -325,7 +328,7 @@ goog.net.IframeIo.getNextName_ = function() {
 goog.net.IframeIo.getForm_ = function() {
   if (!goog.net.IframeIo.form_) {
     goog.net.IframeIo.form_ =
-        /** @type {HTMLFormElement} */(goog.dom.createDom('form'));
+        /** @type {!HTMLFormElement} */(goog.dom.createDom('form'));
     goog.net.IframeIo.form_.acceptCharset = 'utf-8';
 
     // Hide the form and move it off screen
@@ -457,15 +460,6 @@ goog.net.IframeIo.prototype.lastContent_ = null;
  * @private
  */
 goog.net.IframeIo.prototype.lastErrorCode_ = goog.net.ErrorCode.NO_ERROR;
-
-
-/**
- * Window timeout ID used to cancel the timeout event handler if the request
- * completes successfully.
- * @type {?number}
- * @private
- */
-goog.net.IframeIo.prototype.timeoutId_ = null;
 
 
 /**
@@ -879,19 +873,19 @@ goog.net.IframeIo.prototype.sendFormInternal_ = function() {
 
     // Open and document.write another iframe into the iframe
     var doc = goog.dom.getFrameContentDocument(this.iframe_);
-    var html = '<body><iframe id=' + innerFrameName +
-               ' name=' + innerFrameName + '></iframe>';
+    var html;
     if (document.baseURI) {
       // On Safari 4 and 5 the new iframe doesn't inherit the current baseURI.
-      html = '<head><base href="' + goog.string.htmlEscape(document.baseURI) +
-             '"></head>' + html;
+      html = goog.net.IframeIo.createIframeHtmlWithBaseUri_(innerFrameName);
+    } else {
+      html = goog.net.IframeIo.createIframeHtml_(innerFrameName);
     }
     if (goog.userAgent.OPERA) {
       // Opera adds a history entry when document.write is used.
       // Change the innerHTML of the page instead.
-      doc.documentElement.innerHTML = html;
+      goog.dom.safe.setInnerHtml(doc.documentElement, html);
     } else {
-      doc.write(html);
+      goog.dom.safe.documentWrite(doc, html);
     }
 
     // Listen for the iframe's load
@@ -988,6 +982,41 @@ goog.net.IframeIo.prototype.sendFormInternal_ = function() {
 
 
 /**
+ * @param {string} innerFrameName
+ * @return {!goog.html.SafeHtml}
+ * @private
+ */
+goog.net.IframeIo.createIframeHtml_ = function(innerFrameName) {
+  var innerFrameNameEscaped = goog.string.htmlEscape(innerFrameName);
+  return goog.html.uncheckedconversions
+      .safeHtmlFromStringKnownToSatisfyTypeContract(
+          goog.string.Const.from(
+              'Short HTML snippet, input escaped, for performance'),
+          '<body><iframe id="' + innerFrameNameEscaped +
+          '" name="' + innerFrameNameEscaped + '"></iframe>');
+};
+
+
+/**
+ * @param {string} innerFrameName
+ * @return {!goog.html.SafeHtml}
+ * @private
+ */
+goog.net.IframeIo.createIframeHtmlWithBaseUri_ = function(innerFrameName) {
+  var innerFrameNameEscaped = goog.string.htmlEscape(innerFrameName);
+  return goog.html.uncheckedconversions
+      .safeHtmlFromStringKnownToSatisfyTypeContract(
+          goog.string.Const.from(
+              'Short HTML snippet, input escaped, safe URL, for performance'),
+          '<head><base href="' +
+          goog.string.htmlEscape(/** @type {string} */ (document.baseURI)) +
+          '"></head>' +
+          '<body><iframe id="' + innerFrameNameEscaped +
+          '" name="' + innerFrameNameEscaped + '"></iframe>');
+};
+
+
+/**
  * Handles the load event of the iframe for IE, determines if the request was
  * successful or not, handles clean up and dispatching of appropriate events.
  * @param {goog.events.BrowserEvent} e The browser event.
@@ -1012,7 +1041,7 @@ goog.net.IframeIo.prototype.onIeReadyStateChange_ = function(e) {
       this.handleError_(goog.net.ErrorCode.ACCESS_DENIED);
       return;
     }
-    this.handleLoad_(/** @type {HTMLDocument} */(doc));
+    this.handleLoad_(/** @type {!HTMLDocument} */(doc));
   }
 };
 
@@ -1142,7 +1171,6 @@ goog.net.IframeIo.prototype.handleIncrementalData_ = function(data) {
  */
 goog.net.IframeIo.prototype.makeReady_ = function() {
   goog.log.info(this.logger_, 'Ready for new requests');
-  var iframe = this.iframe_;
   this.scheduleIframeDisposal_();
   this.disposeForm_();
   this.dispatchEvent(goog.net.EventType.READY);
@@ -1166,7 +1194,7 @@ goog.net.IframeIo.prototype.createIframe_ = function() {
     iframeAttributes.src = 'javascript:""';
   }
 
-  this.iframe_ = /** @type {HTMLIFrameElement} */(
+  this.iframe_ = /** @type {!HTMLIFrameElement} */(
       goog.dom.getDomHelper(this.form_).createDom('iframe', iframeAttributes));
 
   var s = this.iframe_.style;
@@ -1294,7 +1322,7 @@ goog.net.IframeIo.prototype.disposeForm_ = function() {
  */
 goog.net.IframeIo.prototype.getContentDocument_ = function() {
   if (this.iframe_) {
-    return /** @type {HTMLDocument} */(goog.dom.getFrameContentDocument(
+    return /** @type {!HTMLDocument} */(goog.dom.getFrameContentDocument(
         this.getRequestIframe()));
   }
   return null;

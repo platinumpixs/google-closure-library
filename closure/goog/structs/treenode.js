@@ -296,7 +296,7 @@ goog.structs.TreeNode.prototype.getNodeByKey = function(key) {
 /**
  * Traverses all child nodes.
  * @param {function(this:THIS, !goog.structs.TreeNode<KEY, VALUE>, number,
- *     !Array<!goog.structs.TreeNode.<KEY, VALUE>>)} f Callback function. It
+ *     !Array<!goog.structs.TreeNode<KEY, VALUE>>)} f Callback function. It
  *     takes the node, its index and the array of all child nodes as arguments.
  * @param {THIS=} opt_this The object to be used as the value of {@code this}
  *     within {@code f}.
@@ -309,10 +309,11 @@ goog.structs.TreeNode.prototype.forEachChild = function(f, opt_this) {
 
 /**
  * Traverses all child nodes recursively in preorder.
- * @param {function(!goog.structs.TreeNode<KEY, VALUE>)} f Callback function.
- *     It takes the node as argument.
- * @param {Object=} opt_this The object to be used as the value of {@code this}
+ * @param {function(this:THIS, !goog.structs.TreeNode<KEY, VALUE>)} f Callback
+ *     function.  It takes the node as argument.
+ * @param {THIS=} opt_this The object to be used as the value of {@code this}
  *     within {@code f}.
+ * @template THIS
  */
 goog.structs.TreeNode.prototype.forEachDescendant = function(f, opt_this) {
   goog.array.forEach(this.getChildren(), function(child) {

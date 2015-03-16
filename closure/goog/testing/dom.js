@@ -205,7 +205,7 @@ goog.testing.dom.nodeFilter_ = function(node) {
     if (match) {
       return goog.testing.dom.checkUserAgents_(match[1]);
     }
-  } else if (node.className) {
+  } else if (node.className && goog.isString(node.className)) {
     return goog.testing.dom.checkUserAgents_(node.className);
   }
   return true;
@@ -349,7 +349,7 @@ goog.testing.dom.assertHtmlContentsMatch = function(htmlPattern, actual,
       if (IE_TEXT_COLLAPSE) {
         // Collapse the leading whitespace, unless the string consists entirely
         // of whitespace.
-        if (collapsible && !goog.string.isEmpty(actualText)) {
+        if (collapsible && !goog.string.isEmptyOrWhitespace(actualText)) {
           actualText = goog.string.trimLeft(actualText);
         }
         // Prepare to collapse whitespace in the next Text node if this one does

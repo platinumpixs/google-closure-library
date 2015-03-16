@@ -38,10 +38,13 @@ goog.require('goog.asserts');
 goog.require('goog.dom.BrowserFeature');
 goog.require('goog.dom.NodeType');
 goog.require('goog.dom.TagName');
+goog.require('goog.dom.safe');
+goog.require('goog.html.SafeHtml');
 goog.require('goog.math.Coordinate');
 goog.require('goog.math.Size');
 goog.require('goog.object');
 goog.require('goog.string');
+goog.require('goog.string.Unicode');
 goog.require('goog.userAgent');
 
 
@@ -227,7 +230,9 @@ goog.dom.getElementsByClass = function(className, opt_el) {
 goog.dom.getElementByClass = function(className, opt_el) {
   var parent = opt_el || document;
   var retVal = null;
-  if (goog.dom.canUseQuerySelector_(parent)) {
+  if (parent.getElementsByClassName) {
+    retVal = parent.getElementsByClassName(className)[0];
+  } else if (goog.dom.canUseQuerySelector_(parent)) {
     retVal = parent.querySelector('.' + className);
   } else {
     retVal = goog.dom.getElementsByTagNameAndClass_(
@@ -816,10 +821,13 @@ goog.dom.createTextNode = function(content) {
  * Create a table.
  * @param {number} rows The number of rows in the table.  Must be >= 1.
  * @param {number} columns The number of columns in the table.  Must be >= 1.
- * @param {boolean=} opt_fillWithNbsp If true, fills table entries with nsbps.
+ * @param {boolean=} opt_fillWithNbsp If true, fills table entries with
+ *     {@code goog.string.Unicode.NBSP} characters.
  * @return {!Element} The created table.
  */
 goog.dom.createTable = function(rows, columns, opt_fillWithNbsp) {
+  // TODO(user): Return HTMLTableElement, also in prototype function.
+  // Callers need to be updated to e.g. not assign numbers to table.cellSpacing.
   return goog.dom.createTable_(document, rows, columns, !!opt_fillWithNbsp);
 };
 
@@ -829,26 +837,60 @@ goog.dom.createTable = function(rows, columns, opt_fillWithNbsp) {
  * @param {!Document} doc Document object to use to create the table.
  * @param {number} rows The number of rows in the table.  Must be >= 1.
  * @param {number} columns The number of columns in the table.  Must be >= 1.
- * @param {boolean} fillWithNbsp If true, fills table entries with nsbps.
- * @return {!Element} The created table.
+ * @param {boolean} fillWithNbsp If true, fills table entries with
+ *     {@code goog.string.Unicode.NBSP} characters.
+ * @return {!HTMLTableElement} The created table.
  * @private
  */
 goog.dom.createTable_ = function(doc, rows, columns, fillWithNbsp) {
-  var rowHtml = ['<tr>'];
-  for (var i = 0; i < columns; i++) {
-    rowHtml.push(fillWithNbsp ? '<td>&nbsp;</td>' : '<td></td>');
+  var table = /** @type {!HTMLTableElement} */
+      (doc.createElement(goog.dom.TagName.TABLE));
+  var tbody = table.appendChild(doc.createElement(goog.dom.TagName.TBODY));
+  for (var i = 0; i < rows; i++) {
+    var tr = doc.createElement(goog.dom.TagName.TR);
+    for (var j = 0; j < columns; j++) {
+      var td = doc.createElement(goog.dom.TagName.TD);
+      // IE <= 9 will create a text node if we set text content to the empty
+      // string, so we avoid doing it unless necessary. This ensures that the
+      // same DOM tree is returned on all browsers.
+      if (fillWithNbsp) {
+        goog.dom.setTextContent(td, goog.string.Unicode.NBSP);
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
   }
-  rowHtml.push('</tr>');
-  rowHtml = rowHtml.join('');
-  var totalHtml = ['<table>'];
-  for (i = 0; i < rows; i++) {
-    totalHtml.push(rowHtml);
-  }
-  totalHtml.push('</table>');
+  return table;
+};
 
-  var elem = doc.createElement(goog.dom.TagName.DIV);
-  elem.innerHTML = totalHtml.join('');
-  return /** @type {!Element} */ (elem.removeChild(elem.firstChild));
+
+/**
+ * Converts HTML markup into a node.
+ * @param {!goog.html.SafeHtml} html The HTML markup to convert.
+ * @return {!Node} The resulting node.
+ */
+goog.dom.safeHtmlToNode = function(html) {
+  return goog.dom.safeHtmlToNode_(document, html);
+};
+
+
+/**
+ * Helper for {@code safeHtmlToNode}.
+ * @param {!Document} doc The document.
+ * @param {!goog.html.SafeHtml} html The HTML markup to convert.
+ * @return {!Node} The resulting node.
+ * @private
+ */
+goog.dom.safeHtmlToNode_ = function(doc, html) {
+  var tempDiv = doc.createElement('div');
+  if (goog.dom.BrowserFeature.INNER_HTML_NEEDS_SCOPED_ELEMENT) {
+    goog.dom.safe.setInnerHtml(tempDiv,
+        goog.html.SafeHtml.concat(goog.html.SafeHtml.create('br'), html));
+    tempDiv.removeChild(tempDiv.firstChild);
+  } else {
+    goog.dom.safe.setInnerHtml(tempDiv, html);
+  }
+  return goog.dom.childrenToNode_(doc, tempDiv);
 };
 
 
@@ -867,6 +909,7 @@ goog.dom.htmlToDocumentFragment = function(htmlString) {
 };
 
 
+// TODO(jakubvrana): Merge with {@code safeHtmlToNode_}.
 /**
  * Helper for {@code htmlToDocumentFragment}.
  *
@@ -883,8 +926,20 @@ goog.dom.htmlToDocumentFragment_ = function(doc, htmlString) {
   } else {
     tempDiv.innerHTML = htmlString;
   }
+  return goog.dom.childrenToNode_(doc, tempDiv);
+};
+
+
+/**
+ * Helper for {@code htmlToDocumentFragment_}.
+ * @param {!Document} doc The document.
+ * @param {!Node} tempDiv The input node.
+ * @return {!Node} The resulting node.
+ * @private
+ */
+goog.dom.childrenToNode_ = function(doc, tempDiv) {
   if (tempDiv.childNodes.length == 1) {
-    return /** @type {!Node} */ (tempDiv.removeChild(tempDiv.firstChild));
+    return tempDiv.removeChild(tempDiv.firstChild);
   } else {
     var fragment = doc.createDocumentFragment();
     while (tempDiv.firstChild) {
@@ -1142,7 +1197,7 @@ goog.dom.getChildren = function(element) {
  */
 goog.dom.getFirstElementChild = function(node) {
   if (node.firstElementChild != undefined) {
-    return /** @type {Element} */(node).firstElementChild;
+    return /** @type {!Element} */(node).firstElementChild;
   }
   return goog.dom.getNextElementNode_(node.firstChild, true);
 };
@@ -1155,7 +1210,7 @@ goog.dom.getFirstElementChild = function(node) {
  */
 goog.dom.getLastElementChild = function(node) {
   if (node.lastElementChild != undefined) {
-    return /** @type {Element} */(node).lastElementChild;
+    return /** @type {!Element} */(node).lastElementChild;
   }
   return goog.dom.getNextElementNode_(node.lastChild, false);
 };
@@ -1168,7 +1223,7 @@ goog.dom.getLastElementChild = function(node) {
  */
 goog.dom.getNextElementSibling = function(node) {
   if (node.nextElementSibling != undefined) {
-    return /** @type {Element} */(node).nextElementSibling;
+    return /** @type {!Element} */(node).nextElementSibling;
   }
   return goog.dom.getNextElementNode_(node.nextSibling, true);
 };
@@ -1182,7 +1237,7 @@ goog.dom.getNextElementSibling = function(node) {
  */
 goog.dom.getPreviousElementSibling = function(node) {
   if (node.previousElementSibling != undefined) {
-    return /** @type {Element} */(node).previousElementSibling;
+    return /** @type {!Element} */(node).previousElementSibling;
   }
   return goog.dom.getNextElementNode_(node.previousSibling, false);
 };
@@ -2011,10 +2066,13 @@ goog.dom.isNodeList = function(val) {
  *     null/undefined to match only based on class name).
  * @param {?string=} opt_class The class name to match (or null/undefined to
  *     match only based on tag name).
+ * @param {number=} opt_maxSearchSteps Maximum number of levels to search up the
+ *     dom.
  * @return {Element} The first ancestor that matches the passed criteria, or
  *     null if no match is found.
  */
-goog.dom.getAncestorByTagNameAndClass = function(element, opt_tag, opt_class) {
+goog.dom.getAncestorByTagNameAndClass = function(element, opt_tag, opt_class,
+    opt_maxSearchSteps) {
   if (!opt_tag && !opt_class) {
     return null;
   }
@@ -2024,7 +2082,7 @@ goog.dom.getAncestorByTagNameAndClass = function(element, opt_tag, opt_class) {
         return (!tagName || node.nodeName == tagName) &&
                (!opt_class || goog.isString(node.className) &&
                    goog.array.contains(node.className.split(/\s+/), opt_class));
-      }, true));
+      }, true, opt_maxSearchSteps));
 };
 
 
@@ -2034,11 +2092,14 @@ goog.dom.getAncestorByTagNameAndClass = function(element, opt_tag, opt_class) {
  * element itself is returned.
  * @param {Node} element The DOM node to start with.
  * @param {string} className The class name to match.
+ * @param {number=} opt_maxSearchSteps Maximum number of levels to search up the
+ *     dom.
  * @return {Element} The first ancestor that matches the passed criteria, or
  *     null if none match.
  */
-goog.dom.getAncestorByClass = function(element, className) {
-  return goog.dom.getAncestorByTagNameAndClass(element, null, className);
+goog.dom.getAncestorByClass = function(element, className, opt_maxSearchSteps) {
+  return goog.dom.getAncestorByTagNameAndClass(element, null, className,
+      opt_maxSearchSteps);
 };
 
 
@@ -2412,13 +2473,26 @@ goog.dom.DomHelper.prototype.createTextNode = function(content) {
  * Create a table.
  * @param {number} rows The number of rows in the table.  Must be >= 1.
  * @param {number} columns The number of columns in the table.  Must be >= 1.
- * @param {boolean=} opt_fillWithNbsp If true, fills table entries with nsbps.
- * @return {!Element} The created table.
+ * @param {boolean=} opt_fillWithNbsp If true, fills table entries with
+ *     {@code goog.string.Unicode.NBSP} characters.
+ * @return {!HTMLElement} The created table.
  */
 goog.dom.DomHelper.prototype.createTable = function(rows, columns,
     opt_fillWithNbsp) {
   return goog.dom.createTable_(this.document_, rows, columns,
       !!opt_fillWithNbsp);
+};
+
+
+/**
+ * Converts an HTML into a node or a document fragment. A single Node is used if
+ * {@code html} only generates a single node. If {@code html} generates multiple
+ * nodes then these are put inside a {@code DocumentFragment}.
+ * @param {!goog.html.SafeHtml} html The HTML markup to convert.
+ * @return {!Node} The resulting node.
+ */
+goog.dom.DomHelper.prototype.safeHtmlToNode = function(html) {
+  return goog.dom.safeHtmlToNode_(this.document_, html);
 };
 
 
@@ -2874,6 +2948,8 @@ goog.dom.DomHelper.prototype.isNodeList = goog.dom.isNodeList;
  *     null/undefined to match only based on class name).
  * @param {?string=} opt_class The class name to match (or null/undefined to
  *     match only based on tag name).
+ * @param {number=} opt_maxSearchSteps Maximum number of levels to search up the
+ *     dom.
  * @return {Element} The first ancestor that matches the passed criteria, or
  *     null if no match is found.
  */
@@ -2887,6 +2963,8 @@ goog.dom.DomHelper.prototype.getAncestorByTagNameAndClass =
  * element itself is returned.
  * @param {Node} element The DOM node to start with.
  * @param {string} class The class name to match.
+ * @param {number=} opt_maxSearchSteps Maximum number of levels to search up the
+ *     dom.
  * @return {Element} The first ancestor that matches the passed criteria, or
  *     null if none match.
  */

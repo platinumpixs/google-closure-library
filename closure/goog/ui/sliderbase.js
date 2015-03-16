@@ -541,7 +541,7 @@ goog.ui.SliderBase.prototype.handleBeforeDrag_ = function(e) {
 
 
 /**
- * Handler for the start/end drag event on the thumgs. Adds/removes
+ * Handler for the start/end drag event on the thumbs. Adds/removes
  * the "-dragging" CSS classes on the slider and thumb.
  * @param {goog.fx.DragEvent} e The drag event used to drag the thumb.
  * @private
@@ -818,14 +818,6 @@ goog.ui.SliderBase.prototype.getValueFromMousePosition = function(e) {
     return (max - min) * x / availW + min;
   }
 };
-
-
-/**
- * @deprecated Since 25-June-2012. Use public method getValueFromMousePosition.
- * @private
- */
-goog.ui.SliderBase.prototype.getValueFromMousePosition_ =
-    goog.ui.SliderBase.prototype.getValueFromMousePosition;
 
 
 /**
@@ -1115,14 +1107,6 @@ goog.ui.SliderBase.prototype.getThumbCoordinateForValue = function(val) {
 
 
 /**
- * @deprecated Since 25-June-2012. Use public method getThumbCoordinateForValue.
- * @private
- */
-goog.ui.SliderBase.prototype.getThumbCoordinateForValue_ =
-    goog.ui.SliderBase.prototype.getThumbCoordinateForValue;
-
-
-/**
  * Sets the value and starts animating the handle towards that position.
  * @param {number} v Value to set and animate to.
  */
@@ -1265,7 +1249,6 @@ goog.ui.SliderBase.prototype.addRangeHighlightAnimations_ = function(thumb,
         previousMinCoord.x, previousMaxCoord.x, this.valueThumb.offsetWidth);
     var highlightPositioning = this.calculateRangeHighlightPositioning_(
         minCoord.x, maxCoord.x, this.valueThumb.offsetWidth);
-    var newWidth = highlightPositioning[1];
     var slide = new goog.fx.dom.Slide(this.rangeHighlight,
         [previousHighlightPositioning.offset, this.rangeHighlight.offsetTop],
         [highlightPositioning.offset, this.rangeHighlight.offsetTop],

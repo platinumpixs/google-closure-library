@@ -42,7 +42,7 @@ goog.Thenable = function() {};
  * with the return value of the callback or thrown value.
  *
  * @param {?(function(this:THIS, TYPE):
- *             (RESULT|IThenable.<RESULT>|Thenable))=} opt_onFulfilled A
+ *             (RESULT|IThenable<RESULT>|Thenable))=} opt_onFulfilled A
  *     function that will be invoked with the fulfillment value if the Promise
  *     is fullfilled.
  * @param {?(function(this:THIS, *): *)=} opt_onRejected A function that will
@@ -76,7 +76,7 @@ goog.Thenable.IMPLEMENTED_BY_PROP = '$goog_Thenable';
  * Exports a 'then' method on the constructor prototype, so that the objects
  * also implement the extern {@see goog.Thenable} interface for interop with
  * other Promise implementations.
- * @param {function(new:goog.Thenable,...[?])} ctor The class constructor. The
+ * @param {function(new:goog.Thenable,...?)} ctor The class constructor. The
  *     corresponding class must have already implemented the interface.
  */
 goog.Thenable.addImplementation = function(ctor) {

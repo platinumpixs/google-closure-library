@@ -56,7 +56,7 @@ goog.crypt.Sha2_64bit = function(numHashBlocks, initHashBlocks) {
   /**
    * A chunk holding the currently processed message bytes. Once the chunk has
    * {@code this.blocksize} bytes, we feed it into [@code computeChunk_}.
-   * @private {!Uint8Array|Array<number>}
+   * @private {!Uint8Array|!Array<number>}
    */
   this.chunk_ = goog.isDef(goog.global.Uint8Array) ?
       new Uint8Array(goog.crypt.Sha2_64bit.BLOCK_SIZE_) :
@@ -159,7 +159,6 @@ goog.crypt.Sha2_64bit.prototype.update = function(message, opt_length) {
   // might end up with a chunk that is less than 512 bits. We store
   // such partial chunk in chunk_ and it will be filled up later
   // in digest().
-  var n = 0;
   var chunkBytes = this.chunkBytes_;
 
   // The input message could be either byte array or string.

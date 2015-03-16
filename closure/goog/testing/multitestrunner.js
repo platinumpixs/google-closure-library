@@ -846,7 +846,7 @@ goog.testing.MultiTestRunner.prototype.drawTimeHistogram_ = function() {
  * Draws a stats histogram.
  * @param {string} statsField Field of the stats object to graph.
  * @param {number} bucketSize The size for the histogram's buckets.
- * @param {function(number, ...[*]): *} valueTransformFn Function for
+ * @param {function(number, ...*): *} valueTransformFn Function for
  *     transforming the x-labels value for display.
  * @param {number} width The width in pixels of the graph.
  * @param {string} title The graph's title.
@@ -1017,7 +1017,7 @@ goog.testing.MultiTestRunner.prototype.drawProgressSegment_ =
  */
 goog.testing.MultiTestRunner.prototype.drawTestResult_ = function(
     test, success, report) {
-  var text = goog.string.isEmpty(report) ?
+  var text = goog.string.isEmptyOrWhitespace(report) ?
       'No report for ' + test + '\n' : report;
   var el = this.dom_.createDom('div');
   text = goog.string.htmlEscape(text).replace(/\n/g, '<br>');
@@ -1387,7 +1387,7 @@ goog.testing.MultiTestRunner.TestFrame.prototype.finish_ = function() {
  */
 goog.testing.MultiTestRunner.TestFrame.prototype.createIframe_ = function() {
   this.iframeEl_ =
-      /** @type {HTMLIFrameElement} */ (this.dom_.createDom('iframe'));
+      /** @type {!HTMLIFrameElement} */ (this.dom_.createDom('iframe'));
   this.getElement().appendChild(this.iframeEl_);
   this.eh_.listen(this.iframeEl_, 'load', this.onIframeLoaded_);
 };

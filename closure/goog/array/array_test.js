@@ -806,6 +806,15 @@ function testExtend() {
   goog.array.extend(f, length3ArrayLikeObject, length3ArrayLikeObject);
   var f2 = [0, 1, 2, 4, 8, 2, 4, 8];
   assertArrayEquals('extend, should be equal', f2, f);
+
+  var result = [];
+  var i = 1000000;
+  var bigArray = Array(i);
+  while (i--) {
+    bigArray[i] = i;
+  }
+  goog.array.extend(result, bigArray);
+  assertArrayEquals(bigArray, result);
 }
 
 function testExtendWithArguments() {
@@ -1751,4 +1760,27 @@ function testRemoveAllIf_noMatches() {
 
   assertEquals(0, actualOutput);
   assertArrayEquals(expectedArray, testArray);
+}
+
+function testCopyByIndex() {
+  var testArray = [1, 2, 'a', 'b', 'c', 'd'];
+  var copyIndexes = [1, 3, 0, 0, 2];
+  var expectedArray = [2, 'b', 1, 1, 'a'];
+
+  var actualOutput = goog.array.copyByIndex(testArray, copyIndexes);
+
+  assertArrayEquals(expectedArray, actualOutput);
+}
+
+function testComparators() {
+  var greater = 42;
+  var smaller = 13;
+
+  assertTrue(goog.array.defaultCompare(smaller, greater) < 0);
+  assertEquals(0, goog.array.defaultCompare(smaller, smaller));
+  assertTrue(goog.array.defaultCompare(greater, smaller) > 0);
+
+  assertTrue(goog.array.inverseDefaultCompare(greater, smaller) < 0);
+  assertEquals(0, goog.array.inverseDefaultCompare(greater, greater));
+  assertTrue(goog.array.inverseDefaultCompare(smaller, greater) > 0);
 }

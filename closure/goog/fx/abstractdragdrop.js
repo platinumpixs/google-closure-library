@@ -179,7 +179,7 @@ goog.fx.AbstractDragDrop.prototype.initialized_ = false;
 
 /**
  * Constants for event names
- * @type {Object}
+ * @const
  */
 goog.fx.AbstractDragDrop.EventType = {
   DRAGOVER: 'dragover',
@@ -1240,11 +1240,6 @@ goog.fx.DragDropEvent = function(type, source, sourceItem,
   this.subtarget = opt_subtarget;
 };
 goog.inherits(goog.fx.DragDropEvent, goog.events.Event);
-
-
-/** @override */
-goog.fx.DragDropEvent.prototype.disposeInternal = function() {
-};
 
 
 
