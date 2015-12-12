@@ -30,6 +30,7 @@ goog.require('goog.date.DateRange');
 goog.require('goog.date.Interval');
 goog.require('goog.dom');
 goog.require('goog.dom.NodeType');
+goog.require('goog.dom.TagName');
 goog.require('goog.dom.classlist');
 goog.require('goog.events.Event');
 goog.require('goog.events.EventType');
@@ -743,11 +744,23 @@ goog.ui.DatePicker.prototype.getDateElementAt = function(row, col) {
 
 
 /**
- * Sets the selected date.
+ * Sets the selected date. Will always fire the SELECT event.
  *
  * @param {goog.date.Date|Date} date Date to select or null to select nothing.
  */
 goog.ui.DatePicker.prototype.setDate = function(date) {
+  this.setDate_(date, true);
+};
+
+
+/**
+ * Sets the selected date, and optionally fires the SELECT event based on param.
+ *
+ * @param {goog.date.Date|Date} date Date to select or null to select nothing.
+ * @param {boolean} fireSelection Whether to fire the selection event.
+ * @private
+ */
+goog.ui.DatePicker.prototype.setDate_ = function(date, fireSelection) {
   // Check if the month has been changed.
   var sameMonth = date == this.date_ || date && this.date_ &&
       date.getFullYear() == this.date_.getFullYear() &&
@@ -770,11 +783,13 @@ goog.ui.DatePicker.prototype.setDate = function(date) {
   // selected another month can be displayed.
   this.updateCalendarGrid_();
 
-  // TODO(eae): Standardize selection and change events with other components.
-  // Fire select event.
-  var selectEvent = new goog.ui.DatePickerEvent(
-      goog.ui.DatePicker.Events.SELECT, this, this.date_);
-  this.dispatchEvent(selectEvent);
+  if (fireSelection) {
+    // TODO(eae): Standardize selection and change events with other components.
+    // Fire select event.
+    var selectEvent = new goog.ui.DatePickerEvent(
+        goog.ui.DatePicker.Events.SELECT, this, this.date_);
+    this.dispatchEvent(selectEvent);
+  }
 
   // Fire change event.
   if (!sameDate) {
@@ -912,10 +927,10 @@ goog.ui.DatePicker.prototype.decorateInternal = function(el) {
   goog.asserts.assert(el);
   goog.dom.classlist.add(el, this.getBaseCssClass());
 
-  var table = this.dom_.createElement('table');
-  var thead = this.dom_.createElement('thead');
-  var tbody = this.dom_.createElement('tbody');
-  var tfoot = this.dom_.createElement('tfoot');
+  var table = this.dom_.createElement(goog.dom.TagName.TABLE);
+  var thead = this.dom_.createElement(goog.dom.TagName.THEAD);
+  var tbody = this.dom_.createElement(goog.dom.TagName.TBODY);
+  var tfoot = this.dom_.createElement(goog.dom.TagName.TFOOT);
 
   goog.a11y.aria.setRole(tbody, 'grid');
   tbody.tabIndex = '0';
@@ -925,7 +940,7 @@ goog.ui.DatePicker.prototype.decorateInternal = function(el) {
   this.tableBody_ = tbody;
   this.tableFoot_ = tfoot;
 
-  var row = this.dom_.createElement('tr');
+  var row = this.dom_.createElement(goog.dom.TagName.TR);
   row.className = goog.getCssName(this.getBaseCssClass(), 'head');
   this.elNavRow_ = row;
   this.updateNavigationRow_();
@@ -935,7 +950,7 @@ goog.ui.DatePicker.prototype.decorateInternal = function(el) {
   var cell;
   this.elTable_ = [];
   for (var i = 0; i < 7; i++) {
-    row = this.dom_.createElement('tr');
+    row = this.dom_.createElement(goog.dom.TagName.TR);
     this.elTable_[i] = [];
     for (var j = 0; j < 8; j++) {
       cell = this.dom_.createElement(j == 0 || i == 0 ? 'th' : 'td');
@@ -951,7 +966,7 @@ goog.ui.DatePicker.prototype.decorateInternal = function(el) {
     tbody.appendChild(row);
   }
 
-  row = this.dom_.createElement('tr');
+  row = this.dom_.createElement(goog.dom.TagName.TR);
   row.className = goog.getCssName(this.getBaseCssClass(), 'foot');
   this.elFootRow_ = row;
   this.updateFooterRow_();
@@ -1033,7 +1048,7 @@ goog.ui.DatePicker.prototype.disposeInternal = function() {
  * @private
  */
 goog.ui.DatePicker.prototype.handleGridClick_ = function(event) {
-  if (event.target.tagName == 'TD') {
+  if (event.target.tagName == goog.dom.TagName.TD) {
     // colIndex/rowIndex is broken in Safari, find position by looping
     var el, x = -2, y = -2; // first col/row is for weekday/weeknum
     for (el = event.target; el; el = el.previousSibling, x++) {}
@@ -1085,6 +1100,11 @@ goog.ui.DatePicker.prototype.handleGridKeyPress_ = function(event) {
     case 46: // Delete
       event.preventDefault();
       this.selectNone();
+      break;
+    case 13: // Enter
+    case 32: // Space
+      event.preventDefault();
+      this.setDate_(this.date_, true /* fireSelection */);
     default:
       return;
   }
@@ -1097,7 +1117,7 @@ goog.ui.DatePicker.prototype.handleGridKeyPress_ = function(event) {
     date.setDate(1);
   }
   if (this.isUserSelectableDate_(date)) {
-    this.setDate(date);
+    this.setDate_(date, false /* fireSelection */);
   }
 };
 
@@ -1193,14 +1213,14 @@ goog.ui.DatePicker.prototype.createMenu_ = function(srcEl, items, method,
                                                     selected) {
   this.destroyMenu_();
 
-  var el = this.dom_.createElement('div');
+  var el = this.dom_.createElement(goog.dom.TagName.DIV);
   el.className = goog.getCssName(this.getBaseCssClass(), 'menu');
 
   this.menuSelected_ = null;
 
-  var ul = this.dom_.createElement('ul');
+  var ul = this.dom_.createElement(goog.dom.TagName.UL);
   for (var i = 0; i < items.length; i++) {
-    var li = this.dom_.createDom('li', null, items[i]);
+    var li = this.dom_.createDom(goog.dom.TagName.LI, null, items[i]);
     li.setAttribute('itemIndex', i);
     if (items[i] == selected) {
       this.menuSelected_ = li;
@@ -1208,6 +1228,7 @@ goog.ui.DatePicker.prototype.createMenu_ = function(srcEl, items, method,
     ul.appendChild(li);
   }
   el.appendChild(ul);
+  srcEl = /** @type {!HTMLElement} */ (srcEl);
   el.style.left = srcEl.offsetLeft + srcEl.parentNode.offsetLeft + 'px';
   el.style.top = srcEl.offsetTop + 'px';
   el.style.width = srcEl.clientWidth + 'px';

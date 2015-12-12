@@ -68,6 +68,7 @@ goog.provide('goog.net.CrossDomainRpc');
 
 goog.require('goog.Uri');
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.dom.safe');
 goog.require('goog.events');
 goog.require('goog.events.EventTarget');
@@ -168,7 +169,7 @@ goog.net.CrossDomainRpc.isInResponseIframe_ = function() {
  *    response iframe.
  */
 if (goog.net.CrossDomainRpc.isInResponseIframe_()) {
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.EDGE_OR_IE) {
     document.execCommand('Stop');
   } else if (goog.userAgent.GECKO) {
     window.stop();
@@ -287,7 +288,7 @@ goog.net.CrossDomainRpc.getDummyResourceUri_ = function() {
 
   // find a style sheet if not on IE, which will attempt to save style sheet
   if (goog.userAgent.GECKO) {
-    var links = document.getElementsByTagName('link');
+    var links = document.getElementsByTagName(goog.dom.TagName.LINK);
     for (var i = 0; i < links.length; i++) {
       var link = links[i];
       // find a link which is on the same domain as this page
@@ -301,7 +302,7 @@ goog.net.CrossDomainRpc.getDummyResourceUri_ = function() {
     }
   }
 
-  var images = document.getElementsByTagName('img');
+  var images = document.getElementsByTagName(goog.dom.TagName.IMG);
   for (var i = 0; i < images.length; i++) {
     var image = images[i];
     // find a link which is on the same domain as this page
@@ -318,7 +319,7 @@ goog.net.CrossDomainRpc.getDummyResourceUri_ = function() {
         'No suitable dummy resource specified or detected for this page');
   }
 
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.EDGE_OR_IE) {
     // use this page as the dummy resource; remove hash from URL if any
     return goog.net.CrossDomainRpc.removeHash_(window.location.href);
   } else {
@@ -416,7 +417,7 @@ goog.net.CrossDomainRpc.prototype.sendRequest =
     function(uri, opt_method, opt_params, opt_headers) {
   // create request frame
   var requestFrame = this.requestFrame_ = /** @type {!HTMLIFrameElement} */ (
-      document.createElement('iframe'));
+      document.createElement(goog.dom.TagName.IFRAME));
   var requestId = goog.net.CrossDomainRpc.nextRequestId_++;
   requestFrame.id = goog.net.CrossDomainRpc.REQUEST_MARKER_ + '-' + requestId;
   if (!goog.net.CrossDomainRpc.debugMode_) {
@@ -558,7 +559,7 @@ goog.net.CrossDomainRpc.prototype.detectResponse_ =
 
     var responseData = chunks.join('');
     // Payload is not encoded to begin with on IE. Decode in other cases only.
-    if (!goog.userAgent.IE) {
+    if (!goog.userAgent.EDGE_OR_IE) {
       responseData = decodeURIComponent(responseData);
     }
 
@@ -695,7 +696,7 @@ goog.net.CrossDomainRpc.RESPONSE_INFO_MARKER_ =
  * @private
  */
 goog.net.CrossDomainRpc.MAX_CHUNK_SIZE_ =
-    goog.userAgent.IE ? 4095 : 1024 * 1024;
+    goog.userAgent.EDGE_OR_IE ? 4095 : 1024 * 1024;
 
 
 /**
@@ -774,7 +775,7 @@ goog.net.CrossDomainRpc.sendResponse =
    * Note(*): IE actually does encode only space to %20 and decodes that
    *   automatically when you do location.href or location.hash.
    */
-  if (!goog.userAgent.IE) {
+  if (!goog.userAgent.EDGE_OR_IE) {
     data = encodeURIComponent(data);
   }
 
@@ -798,7 +799,7 @@ goog.net.CrossDomainRpc.sendResponse =
           data.substring(chunkStart) :
           data.substring(chunkStart, chunkEnd);
 
-      var responseFrame = document.createElement('iframe');
+      var responseFrame = document.createElement(goog.dom.TagName.IFRAME);
       responseFrame.src = dummyUri +
           goog.net.CrossDomainRpc.getPayloadDelimiter_(dummyUri) +
           goog.net.CrossDomainRpc.CHUNK_PREFIX_ + chunk;
@@ -826,7 +827,7 @@ goog.net.CrossDomainRpc.sendResponse =
  */
 goog.net.CrossDomainRpc.createResponseInfo_ =
     function(dummyUri, numChunks, isDataJson, status, headers) {
-  var responseInfoFrame = document.createElement('iframe');
+  var responseInfoFrame = document.createElement(goog.dom.TagName.IFRAME);
   document.body.appendChild(responseInfoFrame);
   responseInfoFrame.src = dummyUri +
       goog.net.CrossDomainRpc.getPayloadDelimiter_(dummyUri) +

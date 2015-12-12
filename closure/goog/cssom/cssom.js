@@ -31,6 +31,7 @@ goog.provide('goog.cssom.CssRuleType');
 
 goog.require('goog.array');
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 
 
 /**
@@ -131,7 +132,8 @@ goog.cssom.getAllCssStyleSheets = function(opt_styleSheet,
   if (styleSheet.imports && styleSheet.imports.length) {
     for (var i = 0, n = styleSheet.imports.length; i < n; i++) {
       goog.array.extend(styleSheetsOutput,
-          goog.cssom.getAllCssStyleSheets(styleSheet.imports[i]));
+          goog.cssom.getAllCssStyleSheets(
+              /** @type {CSSStyleSheet} */ (styleSheet.imports[i])));
     }
 
   } else if (styleSheet.length) {
@@ -351,9 +353,9 @@ goog.cssom.removeCssRule = function(cssStyleSheet, index) {
 goog.cssom.addCssText = function(cssText, opt_domHelper) {
   var document = opt_domHelper ? opt_domHelper.getDocument() :
       goog.dom.getDocument();
-  var cssNode = document.createElement('style');
+  var cssNode = document.createElement(goog.dom.TagName.STYLE);
   cssNode.type = 'text/css';
-  var head = document.getElementsByTagName('head')[0];
+  var head = document.getElementsByTagName(goog.dom.TagName.HEAD)[0];
   head.appendChild(cssNode);
   if (cssNode.styleSheet) {
     // IE.

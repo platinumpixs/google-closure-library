@@ -297,7 +297,7 @@ function testRemovePartialContents() {
         outer.firstChild, 3);
     removeHelper(3, range, outer, 1, '14');
 
-    var br = goog.dom.createDom('BR');
+    var br = goog.dom.createDom(goog.dom.TagName.BR);
     outer.appendChild(br);
     range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
         outer, 1);
@@ -376,15 +376,15 @@ function testSurroundContents() {
 function assertSurroundDoesntChangeSelectionWithOffsets(
     offset1, offset2, expectedHtml) {
   var div = goog.dom.getElement('bug1480638');
-  div.innerHTML = 'foobar';
+  goog.dom.setTextContent(div, 'foobar');
   var rangeToSelect = goog.dom.Range.createFromNodes(
       div.firstChild, 2, div.firstChild, 5);
   rangeToSelect.select();
 
   var rangeToSurround = goog.dom.Range.createFromNodes(
       div.firstChild, offset1, div.firstChild, offset2);
-  rangeToSurround.surroundWithNodes(goog.dom.createDom('span'),
-      goog.dom.createDom('span'));
+  rangeToSurround.surroundWithNodes(goog.dom.createDom(goog.dom.TagName.SPAN),
+      goog.dom.createDom(goog.dom.TagName.SPAN));
 
   // Make sure that the selection didn't change.
   assertHTMLEquals('Selection must not change when contents are surrounded.',
@@ -413,7 +413,7 @@ function testSurroundWithNodesDoesntChangeSelection4() {
 
 function testInsertNode() {
   var outer = goog.dom.getElement('insertTest');
-  outer.innerHTML = 'ACD';
+  goog.dom.setTextContent(outer, 'ACD');
 
   var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
       outer.firstChild, 2);
@@ -421,7 +421,7 @@ function testInsertNode() {
   assertEquals('Element should have correct innerHTML', 'ABCD',
       outer.innerHTML);
 
-  outer.innerHTML = '12';
+  goog.dom.setTextContent(outer, '12');
   range = goog.dom.Range.createFromNodes(outer.firstChild, 0,
       outer.firstChild, 1);
   var br = range.insertNode(goog.dom.createDom(goog.dom.TagName.BR), false);
@@ -432,7 +432,7 @@ function testInsertNode() {
 
 function testReplaceContentsWithNode() {
   var outer = goog.dom.getElement('insertTest');
-  outer.innerHTML = 'AXC';
+  goog.dom.setTextContent(outer, 'AXC');
 
   var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
       outer.firstChild, 2);
@@ -440,7 +440,7 @@ function testReplaceContentsWithNode() {
   assertEquals('Element should have correct innerHTML', 'ABC',
       outer.innerHTML);
 
-  outer.innerHTML = 'ABC';
+  goog.dom.setTextContent(outer, 'ABC');
   range = goog.dom.Range.createFromNodes(outer.firstChild, 3,
       outer.firstChild, 3);
   range.replaceContentsWithNode(goog.dom.createTextNode('D'));
@@ -457,7 +457,7 @@ function testReplaceContentsWithNode() {
 
 function testSurroundWithNodes() {
   var outer = goog.dom.getElement('insertTest');
-  outer.innerHTML = 'ACE';
+  goog.dom.setTextContent(outer, 'ACE');
   var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
       outer.firstChild, 2);
 
@@ -477,7 +477,7 @@ function testIsRangeInDocument() {
       range.getStartNode().nodeValue);
   assertTrue('Should be considered in document', range.isRangeInDocument());
 
-  outer.innerHTML = 'DEF';
+  goog.dom.setTextContent(outer, 'DEF');
 
   assertFalse('Should be marked as out of document',
       range.isRangeInDocument());
@@ -504,12 +504,13 @@ function testRemovedNode() {
 }
 
 function testReversedRange() {
+  if (goog.userAgent.EDGE_OR_IE) return; // IE doesn't make this distinction.
+
   goog.dom.Range.createFromNodes(goog.dom.getElement('test2'), 0,
       goog.dom.getElement('test1'), 0).select();
 
   var range = goog.dom.Range.createFromWindow(window);
-  assertTrue('Range should be reversed',
-      goog.userAgent.IE || range.isReversed());
+  assertTrue('Range should be reversed', range.isReversed());
 }
 
 function testUnreversedRange() {
@@ -702,7 +703,7 @@ function testFocusedElementDisappears() {
   // created, contentEditable is set, is focused, and removed.  After that
   // happens, calling selection.collapse fails.
   // https://bugzilla.mozilla.org/show_bug.cgi?id=773137
-  var disappearingElement = goog.dom.createDom('div');
+  var disappearingElement = goog.dom.createDom(goog.dom.TagName.DIV);
   document.body.appendChild(disappearingElement);
   disappearingElement.contentEditable = true;
   disappearingElement.focus();

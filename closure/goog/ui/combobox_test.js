@@ -34,7 +34,7 @@ var comboBox;
 var input;
 
 function setUp() {
-  goog.dom.getElement('combo').innerHTML = '';
+  goog.dom.removeChildren(goog.dom.getElement('combo'));
 
   comboBox = new goog.ui.ComboBox();
   comboBox.setDefaultText('Select a color...');
@@ -208,7 +208,7 @@ function testSetEnabled() {
 function testSetFormatFromToken() {
   var item = new goog.ui.ComboBoxItem('ABc');
   item.setFormatFromToken('b');
-  var div = goog.dom.createDom('div');
+  var div = goog.dom.createDom(goog.dom.TagName.DIV);
   new goog.ui.ControlRenderer().setContent(div, item.getContent());
   assertTrue(div.innerHTML == 'A<b>B</b>c' || div.innerHTML == 'A<B>B</B>c');
 }

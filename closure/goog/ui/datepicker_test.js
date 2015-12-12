@@ -20,13 +20,17 @@ goog.require('goog.a11y.aria.Role');
 goog.require('goog.date.Date');
 goog.require('goog.date.DateRange');
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.dom.classlist');
 goog.require('goog.events');
+goog.require('goog.events.KeyCodes');
 goog.require('goog.i18n.DateTimeSymbols');
 goog.require('goog.i18n.DateTimeSymbols_en_US');
 goog.require('goog.i18n.DateTimeSymbols_zh_HK');
 goog.require('goog.style');
+goog.require('goog.testing.events');
 goog.require('goog.testing.jsunit');
+goog.require('goog.testing.recordFunction');
 goog.require('goog.ui.DatePicker');
 
 var picker;
@@ -338,8 +342,8 @@ function testUserSelectableDates() {
 function testUniqueCellIds() {
   picker = new goog.ui.DatePicker();
   picker.render();
-  var cells = goog.dom.getElementsByTagNameAndClass('td', undefined,
-      picker.getElement());
+  var cells = goog.dom.getElementsByTagNameAndClass(
+      goog.dom.TagName.TD, undefined, picker.getElement());
   var existingIds = {};
   var numCells = cells.length;
   for (var i = 0; i < numCells; i++) {
@@ -355,8 +359,28 @@ function testUniqueCellIds() {
 
 function testDecoratePreservesClasses() {
   picker = new goog.ui.DatePicker();
-  var div = goog.dom.createDom('div', 'existing-class');
+  var div = goog.dom.createDom(goog.dom.TagName.DIV, 'existing-class');
   picker.decorate(div);
   assertTrue(goog.dom.classlist.contains(div, picker.getBaseCssClass()));
   assertTrue(goog.dom.classlist.contains(div, 'existing-class'));
+}
+
+
+function testKeyboardNavigation() {
+  picker = new goog.ui.DatePicker();
+  picker.render(goog.dom.getElement('sandbox'));
+  var selectEvents = goog.testing.recordFunction();
+  var changeEvents = goog.testing.recordFunction();
+  goog.events.listen(picker, goog.ui.DatePicker.Events.SELECT, selectEvents);
+  goog.events.listen(picker, goog.ui.DatePicker.Events.CHANGE, changeEvents);
+
+  goog.testing.events.fireNonAsciiKeySequence(picker.getElement(),
+      goog.events.KeyCodes.DOWN, goog.events.KeyCodes.DOWN);
+  changeEvents.assertCallCount(1);
+  selectEvents.assertCallCount(0);
+
+  goog.testing.events.fireNonAsciiKeySequence(picker.getElement(),
+      goog.events.KeyCodes.ENTER, goog.events.KeyCodes.ENTER);
+  changeEvents.assertCallCount(1);
+  selectEvents.assertCallCount(1);
 }

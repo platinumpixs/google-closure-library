@@ -690,7 +690,7 @@ function testSelectionPreservingNormalize2() {
 }
 
 function testSelectionPreservingNormalize3() {
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.EDGE_OR_IE) {
     return;
   }
   var parent = $('normalizeTest-2');
@@ -790,7 +790,7 @@ function testSelectNodeStartSimple() {
   // the text will go into the P node.  In Gecko, the selection is at the start
   // of the text node, as you'd expect, but in pre-530 Webkit, it has been
   // normalized to the visible position of P:0.
-  if (goog.userAgent.GECKO || goog.userAgent.IE ||
+  if (goog.userAgent.GECKO || goog.userAgent.IE || goog.userAgent.EDGE ||
       (goog.userAgent.WEBKIT && goog.userAgent.isVersionOrHigher('530'))) {
     goog.testing.dom.assertRangeEquals(div.firstChild.firstChild, 0,
         div.firstChild.firstChild, 0, range);
@@ -885,16 +885,16 @@ function testIntersectsTag() {
 }
 
 function testNormalizeNode() {
-  var div = goog.dom.createDom('DIV', null, 'a', 'b', 'c');
+  var div = goog.dom.createDom(goog.dom.TagName.DIV, null, 'a', 'b', 'c');
   assertEquals(3, div.childNodes.length);
   goog.editor.range.normalizeNode(div);
   assertEquals(1, div.childNodes.length);
   assertEquals('abc', div.firstChild.nodeValue);
 
-  div = goog.dom.createDom('DIV', null,
-      goog.dom.createDom('SPAN', null, '1', '2'),
+  div = goog.dom.createDom(goog.dom.TagName.DIV, null,
+      goog.dom.createDom(goog.dom.TagName.SPAN, null, '1', '2'),
       goog.dom.createTextNode(''),
-      goog.dom.createDom('BR'),
+      goog.dom.createDom(goog.dom.TagName.BR),
       'b',
       'c');
   assertEquals(5, div.childNodes.length);
@@ -910,7 +910,7 @@ function testNormalizeNode() {
   assertEquals(1, div.firstChild.childNodes.length);
   assertEquals('12', div.firstChild.firstChild.nodeValue);
   assertEquals('bc', div.lastChild.nodeValue);
-  assertEquals('BR', div.lastChild.previousSibling.tagName);
+  assertEquals(goog.dom.TagName.BR, div.lastChild.previousSibling.tagName);
 }
 
 function testDeepestPoint() {

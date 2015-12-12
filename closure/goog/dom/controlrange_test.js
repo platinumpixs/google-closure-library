@@ -143,11 +143,11 @@ function testRemoveContents() {
     return;
   }
 
-  var img = goog.dom.createDom('IMG');
+  var img = goog.dom.createDom(goog.dom.TagName.IMG);
   img.src = logo.src;
 
   var div = goog.dom.getElement('test1');
-  div.innerHTML = '';
+  goog.dom.removeChildren(div);
   div.appendChild(img);
   assertEquals('Div has 1 child', 1, div.childNodes.length);
 

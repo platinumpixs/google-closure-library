@@ -337,7 +337,7 @@ goog.editor.plugins.RemoveFormatting.prototype.pasteHtml_ = function(html) {
  * @private
  */
 goog.editor.plugins.RemoveFormatting.prototype.getHtmlText_ = function(range) {
-  var div = this.getFieldDomHelper().createDom('div');
+  var div = this.getFieldDomHelper().createDom(goog.dom.TagName.DIV);
   var textRange = range.getBrowserRangeObject();
 
   if (goog.editor.BrowserFeature.HAS_W3C_RANGES) {
@@ -482,7 +482,7 @@ goog.editor.plugins.RemoveFormatting.prototype.convertSelectedHtmlText_ =
     return;
   }
 
-  if (goog.userAgent.GECKO) {
+  if (goog.userAgent.GECKO || goog.userAgent.EDGE) {
     // Determine if we need to handle tables, since they are special cases.
     // If the selection is entirely within a table, there is no extra
     // formatting removal we can do.  If a table is fully selected, we will
@@ -551,7 +551,7 @@ goog.editor.plugins.RemoveFormatting.prototype.convertSelectedHtmlText_ =
   var text = this.getHtmlText_(range);
   this.pasteHtml_(convertFunc(text));
 
-  if (goog.userAgent.GECKO && savedCaretRange) {
+  if ((goog.userAgent.GECKO || goog.userAgent.EDGE) && savedCaretRange) {
     // If we moved the selection, move it back so the user can't tell we did
     // anything crazy and so the browser removeFormat that we call next
     // will operate on the entire originally selected range.
@@ -582,7 +582,7 @@ goog.editor.plugins.RemoveFormatting.prototype.convertSelectedHtmlText_ =
  */
 goog.editor.plugins.RemoveFormatting.prototype.removeFormattingWorker_ =
     function(html) {
-  var el = goog.dom.createElement('div');
+  var el = goog.dom.createElement(goog.dom.TagName.DIV);
   el.innerHTML = html;
 
   // Put everything into a string buffer to avoid lots of expensive string

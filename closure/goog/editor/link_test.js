@@ -26,7 +26,7 @@ goog.require('goog.userAgent');
 var anchor;
 
 function setUp() {
-  anchor = goog.dom.createDom('A');
+  anchor = goog.dom.createDom(goog.dom.TagName.A);
   document.body.appendChild(anchor);
 }
 
@@ -152,14 +152,14 @@ function testSetMixed() {
 
 function testPlaceCursorRightOf() {
   // IE can only do selections properly if the region is editable.
-  var ed = goog.dom.createDom('div');
+  var ed = goog.dom.createDom(goog.dom.TagName.DIV);
   goog.dom.replaceNode(ed, anchor);
   ed.contentEditable = true;
   ed.appendChild(anchor);
 
   // In order to test the cursor placement properly, we need to have
   // link text.  See more details in the test below.
-  anchor.innerHTML = 'I am text';
+  goog.dom.setTextContent(anchor, 'I am text');
 
   var link = goog.editor.Link.createNewLink(anchor, 'http://www.google.com');
   link.placeCursorRightOf();

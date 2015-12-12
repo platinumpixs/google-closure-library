@@ -16,6 +16,7 @@ goog.provide('goog.events.KeyEventTest');
 goog.setTestOnly('goog.events.KeyEventTest');
 
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.events');
 goog.require('goog.events.BrowserEvent');
 goog.require('goog.events.EventType');
@@ -529,6 +530,7 @@ function testGeckoOnMacAltHandling() {
   goog.userAgent.MAC = true;
   goog.userAgent.WINDOWS = false;
   goog.userAgent.LINUX = false;
+  goog.userAgent.EDGE = false;
   goog.events.KeyHandler.SAVE_ALT_FOR_KEYPRESS_ = true;
 
   var keyEvent, keyHandler = new goog.events.KeyHandler();
@@ -611,8 +613,8 @@ function testMacGeckoSlash() {
 }
 
 function testGetElement() {
-  var target = goog.dom.createDom('div');
-  var target2 = goog.dom.createDom('div');
+  var target = goog.dom.createDom(goog.dom.TagName.DIV);
+  var target2 = goog.dom.createDom(goog.dom.TagName.DIV);
   var keyHandler = new goog.events.KeyHandler();
   assertNull(keyHandler.getElement());
 
@@ -635,7 +637,7 @@ function testGetElement() {
 }
 
 function testDetach() {
-  var target = goog.dom.createDom('div');
+  var target = goog.dom.createDom(goog.dom.TagName.DIV);
   var keyHandler = new goog.events.KeyHandler(target);
   assertEquals(target, keyHandler.getElement());
 
@@ -657,7 +659,7 @@ function testCapturePhase() {
   var gotInCapturePhase;
   var gotInBubblePhase;
 
-  var target = goog.dom.createDom('div');
+  var target = goog.dom.createDom(goog.dom.TagName.DIV);
   goog.events.listen(
       new goog.events.KeyHandler(target, false /* bubble */),
       goog.events.KeyHandler.EventType.KEY,

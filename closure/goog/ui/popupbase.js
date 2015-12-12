@@ -24,6 +24,7 @@ goog.provide('goog.ui.PopupBase.Type');
 goog.require('goog.Timer');
 goog.require('goog.array');
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
 goog.require('goog.events.EventTarget');
@@ -417,10 +418,10 @@ goog.ui.PopupBase.prototype.getLastHideTime = function() {
  * Returns the event handler for the popup. All event listeners belonging to
  * this handler are removed when the tooltip is hidden. Therefore,
  * the recommended usage of this handler is to listen on events in
- * {@link #onShow_}.
+ * {@link #onShow}.
  * @return {goog.events.EventHandler<T>} Event handler for this popup.
  * @protected
- * @this T
+ * @this {T}
  * @template T
  */
 goog.ui.PopupBase.prototype.getHandler = function() {
@@ -565,7 +566,8 @@ goog.ui.PopupBase.prototype.show_ = function() {
         // document.activeElement to throw an Unspecified Error.  This
         // may have to do with loading a popup within a hidden iframe.
       }
-      while (activeElement && activeElement.nodeName == 'IFRAME') {
+      while (activeElement &&
+             activeElement.nodeName == goog.dom.TagName.IFRAME) {
         /** @preserveTry */
         try {
           var tempDoc = goog.dom.getFrameContentDocument(activeElement);
@@ -611,11 +613,11 @@ goog.ui.PopupBase.prototype.show_ = function() {
   if (this.showTransition_) {
     goog.events.listenOnce(
         /** @type {!goog.events.EventTarget} */ (this.showTransition_),
-        goog.fx.Transition.EventType.END, this.onShow_, false, this);
+        goog.fx.Transition.EventType.END, this.onShow, false, this);
     this.showTransition_.play();
   } else {
     // Notify derived classes and handlers.
-    this.onShow_();
+    this.onShow();
   }
 };
 
@@ -629,7 +631,7 @@ goog.ui.PopupBase.prototype.show_ = function() {
  */
 goog.ui.PopupBase.prototype.hide_ = function(opt_target) {
   // Give derived classes and handlers a chance to cancel hiding.
-  if (!this.isVisible_ || !this.onBeforeHide_(opt_target)) {
+  if (!this.isVisible_ || !this.onBeforeHide(opt_target)) {
     return false;
   }
 
@@ -677,7 +679,7 @@ goog.ui.PopupBase.prototype.continueHidingPopup_ = function(opt_target) {
   }
 
   // Notify derived classes and handlers.
-  this.onHide_(opt_target);
+  this.onHide(opt_target);
 };
 
 
@@ -728,9 +730,8 @@ goog.ui.PopupBase.prototype.onBeforeShow = function() {
  * Called after the popup is shown. Derived classes can override to hook this
  * event but should make sure to call the parent class method.
  * @protected
- * @suppress {underscore|visibility}
  */
-goog.ui.PopupBase.prototype.onShow_ = function() {
+goog.ui.PopupBase.prototype.onShow = function() {
   this.dispatchEvent(goog.ui.PopupBase.EventType.SHOW);
 };
 
@@ -743,9 +744,8 @@ goog.ui.PopupBase.prototype.onShow_ = function() {
  * @return {boolean} If anyone called preventDefault on the event object (or
  *     if any of the handlers returns false this will also return false.
  * @protected
- * @suppress {underscore|visibility}
  */
-goog.ui.PopupBase.prototype.onBeforeHide_ = function(opt_target) {
+goog.ui.PopupBase.prototype.onBeforeHide = function(opt_target) {
   return this.dispatchEvent({
     type: goog.ui.PopupBase.EventType.BEFORE_HIDE,
     target: opt_target
@@ -758,9 +758,8 @@ goog.ui.PopupBase.prototype.onBeforeHide_ = function(opt_target) {
  * event but should make sure to call the parent class method.
  * @param {Object=} opt_target Target of the event causing the hide.
  * @protected
- * @suppress {underscore|visibility}
  */
-goog.ui.PopupBase.prototype.onHide_ = function(opt_target) {
+goog.ui.PopupBase.prototype.onHide = function(opt_target) {
   this.dispatchEvent({
     type: goog.ui.PopupBase.EventType.HIDE,
     target: opt_target
@@ -776,7 +775,7 @@ goog.ui.PopupBase.prototype.onHide_ = function(opt_target) {
  * @private
  */
 goog.ui.PopupBase.prototype.onDocumentMouseDown_ = function(e) {
-  var target = /** @type {Node} */ (e.target);
+  var target = e.target;
 
   if (!goog.dom.contains(this.element_, target) &&
       !this.isOrWithinAutoHidePartner_(target) &&
@@ -826,7 +825,7 @@ goog.ui.PopupBase.prototype.onDocumentBlur_ = function(e) {
   if (typeof document.activeElement != 'undefined') {
     var activeElement = doc.activeElement;
     if (!activeElement || goog.dom.contains(this.element_,
-        activeElement) || activeElement.tagName == 'BODY') {
+        activeElement) || activeElement.tagName == goog.dom.TagName.BODY) {
       return;
     }
 

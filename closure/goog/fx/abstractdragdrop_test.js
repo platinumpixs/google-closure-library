@@ -16,6 +16,8 @@ goog.provide('goog.fx.AbstractDragDropTest');
 goog.setTestOnly('goog.fx.AbstractDragDropTest');
 
 goog.require('goog.array');
+goog.require('goog.dom.TagName');
+goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.functions');
 goog.require('goog.fx.AbstractDragDrop');
@@ -461,8 +463,8 @@ function testIsInside() {
 
 function testAddingRemovingScrollableContainers() {
   var group = new goog.fx.AbstractDragDrop();
-  var el1 = document.createElement('div');
-  var el2 = document.createElement('div');
+  var el1 = document.createElement(goog.dom.TagName.DIV);
+  var el2 = document.createElement(goog.dom.TagName.DIV);
 
   assertEquals(0, group.scrollableContainers_.length);
 
@@ -563,8 +565,8 @@ function testScrollBeforeMoveDrag() {
 
 function testMouseMove_mouseOutBeforeThreshold() {
   // Setup dragdrop and item
-  var itemEl = document.createElement('div');
-  var childEl = document.createElement('div');
+  var itemEl = document.createElement(goog.dom.TagName.DIV);
+  var childEl = document.createElement(goog.dom.TagName.DIV);
   itemEl.appendChild(childEl);
   var add = new goog.fx.AbstractDragDrop();
   var item = new goog.fx.DragDropItem(itemEl);
@@ -597,7 +599,7 @@ function testMouseMove_mouseOutBeforeThreshold() {
 
 function testGetDragElementPosition() {
   var testGroup = new goog.fx.AbstractDragDrop();
-  var sourceEl = document.createElement('div');
+  var sourceEl = document.createElement(goog.dom.TagName.DIV);
   document.body.appendChild(sourceEl);
 
   var pageOffset = goog.style.getPageOffset(sourceEl);
@@ -617,6 +619,63 @@ function testGetDragElementPosition() {
       'margins', pageOffset.y - 14, pos.y);
 }
 
+function testDragEndEvent() {
+  function testDragEndEventInternal(shouldContainItemData) {
+    var testGroup = new goog.fx.AbstractDragDrop();
+
+    var childEl = document.getElementById('child1');
+    var item = new goog.fx.DragDropItem(childEl);
+    item.currentDragElement_ = childEl;
+
+    testGroup.items_.push(item);
+    testGroup.recalculateDragTargets();
+
+    // Simulate starting a drag
+    var startEvent = {
+      'clientX': 0,
+      'clientY': 0,
+      'type': goog.events.EventType.MOUSEMOVE,
+      'relatedTarget': childEl,
+      'preventDefault': function() {}
+    };
+    testGroup.startDrag(startEvent, item);
+
+    testGroup.activeTarget_ = new goog.fx.ActiveDropTarget_(
+        new goog.math.Box(0, 0, 0, 0), testGroup, item, childEl);
+
+    goog.events.listen(
+        testGroup, goog.fx.AbstractDragDrop.EventType.DRAGEND, function(event) {
+          if (shouldContainItemData) {
+            assertEquals('The drag end event should contain a drop target',
+                         testGroup, event.dropTarget);
+            assertEquals('The drag end event should contain a drop target item',
+                         item, event.dropTargetItem);
+            assertEquals(
+                'The drag end event should contain a drop target element',
+                childEl, event.dropTargetElement);
+          } else {
+            assertUndefined(
+                'The drag end event shouldn\'t contain a drop target',
+                event.dropTarget);
+            assertUndefined(
+                'The drag end event shouldn\'t contain a drop target item',
+                event.dropTargetItem);
+            assertUndefined(
+                'The drag end event shouldn\'t contain a drop target element',
+                event.dropTargetElement);
+          }
+        });
+
+    testGroup.endDrag(
+        {'clientX': 0, 'clientY': 0, 'dragCanceled': !shouldContainItemData});
+
+    testGroup.dispose();
+    item.dispose();
+  }
+
+  testDragEndEventInternal(false);
+  testDragEndEventInternal(true);
+}
 
 // Helper function for manual debugging.
 function drawTargets(targets, multiplier) {
@@ -625,7 +684,7 @@ function drawTargets(targets, multiplier) {
   cont.innerHTML = '';
   for (var i = 0; i < targets.length; i++) {
     var box = targets[i].box_;
-    var el = document.createElement('div');
+    var el = document.createElement(goog.dom.TagName.DIV);
     el.style.top = (box.top * multiplier) + 'px';
     el.style.left = (box.left * multiplier) + 'px';
     el.style.width = ((box.right - box.left) * multiplier) + 'px';

@@ -116,6 +116,24 @@ goog.graphics.CanvasGroupElement.prototype.draw = function(ctx) {
 };
 
 
+/**
+ * Removes an element from the group.
+ * @param {!goog.graphics.Element} elem the element to remove.
+ */
+goog.graphics.CanvasGroupElement.prototype.removeElement = function(elem) {
+  goog.array.removeIf(this.children_, function(child) {
+    // If the child has children (and thus is a group element)
+    // call removeElement on that group
+    if (child.children_) {
+      child.removeElement(elem);
+      return false;
+    } else {
+      return child === elem;
+    }
+  });
+};
+
+
 
 /**
  * Thin wrapper for canvas ellipse elements.
@@ -522,7 +540,7 @@ goog.graphics.CanvasTextElement = function(graphics, text, x1, y1, x2, y2,
    * @type {Element}
    * @private
    */
-  this.innerElement_ = goog.dom.createDom('DIV', {
+  this.innerElement_ = goog.dom.createDom(goog.dom.TagName.DIV, {
     'style': 'display:table-cell;padding: 0;margin: 0;border: 0'
   });
 

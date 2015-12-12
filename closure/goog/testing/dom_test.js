@@ -27,7 +27,7 @@ function setUpPage() {
 }
 
 function setUp() {
-  root.innerHTML = '';
+  goog.dom.removeChildren(root);
 }
 
 function testFindNode() {
@@ -62,7 +62,7 @@ function findNodeWithHierarchy() {
 
 function setUpAssertHtmlMatches() {
   var tag1, tag2;
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.EDGE_OR_IE) {
     tag1 = goog.dom.TagName.DIV;
   } else if (goog.userAgent.WEBKIT) {
     tag1 = goog.dom.TagName.P;
@@ -99,7 +99,7 @@ function testAssertHtmlContentsMatch() {
 
   goog.testing.dom.assertHtmlContentsMatch(
       '<div style="display: none; font-size: 2em">' +
-      '[[!WEBKIT]]NonWebKitText<div class="IE"><p class="WEBKIT">' +
+      '[[!WEBKIT]]NonWebKitText<div class="IE EDGE"><p class="WEBKIT">' +
       '<span class="GECKO"><br class="GECKO WEBKIT">Text</span></p></div>' +
       '</div>[[WEBKIT]]WebKitText',
       root);
@@ -362,52 +362,52 @@ function testAssertHtmlMatchesWithCheckedAttribute() {
 }
 
 function testAssertHtmlMatchesWithWhitespace() {
-  root.innerHTML = '';
+  goog.dom.removeChildren(root);
   root.appendChild(goog.dom.createTextNode('  A  '));
   goog.testing.dom.assertHtmlContentsMatch('  A  ', root);
 
-  root.innerHTML = '';
+  goog.dom.removeChildren(root);
   root.appendChild(goog.dom.createTextNode('  A  '));
-  root.appendChild(goog.dom.createDom('span', null, '  B  '));
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.SPAN, null, '  B  '));
   root.appendChild(goog.dom.createTextNode('  C  '));
   goog.testing.dom.assertHtmlContentsMatch(
       '  A  <span>  B  </span>  C  ', root);
 
-  root.innerHTML = '';
+  goog.dom.removeChildren(root);
   root.appendChild(goog.dom.createTextNode('  A'));
-  root.appendChild(goog.dom.createDom('span', null, '  B'));
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.SPAN, null, '  B'));
   root.appendChild(goog.dom.createTextNode('  C'));
   goog.testing.dom.assertHtmlContentsMatch(
       '  A<span>  B</span>  C', root);
 }
 
 function testAssertHtmlMatchesWithWhitespaceAndNesting() {
-  root.innerHTML = '';
-  root.appendChild(goog.dom.createDom('div', null,
-      goog.dom.createDom('b', null, '  A  '),
-      goog.dom.createDom('b', null, '  B  ')));
-  root.appendChild(goog.dom.createDom('div', null,
-      goog.dom.createDom('b', null, '  C  '),
-      goog.dom.createDom('b', null, '  D  ')));
+  goog.dom.removeChildren(root);
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.DIV, null,
+      goog.dom.createDom(goog.dom.TagName.B, null, '  A  '),
+      goog.dom.createDom(goog.dom.TagName.B, null, '  B  ')));
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.DIV, null,
+      goog.dom.createDom(goog.dom.TagName.B, null, '  C  '),
+      goog.dom.createDom(goog.dom.TagName.B, null, '  D  ')));
 
   goog.testing.dom.assertHtmlContentsMatch(
       '<div><b>  A  </b><b>  B  </b></div>' +
       '<div><b>  C  </b><b>  D  </b></div>', root);
 
-  root.innerHTML = '';
-  root.appendChild(goog.dom.createDom('b', null,
-      goog.dom.createDom('b', null,
-          goog.dom.createDom('b', null, '  A  '))));
-  root.appendChild(goog.dom.createDom('b', null, '  B  '));
+  goog.dom.removeChildren(root);
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.B, null,
+      goog.dom.createDom(goog.dom.TagName.B, null,
+          goog.dom.createDom(goog.dom.TagName.B, null, '  A  '))));
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.B, null, '  B  '));
 
   goog.testing.dom.assertHtmlContentsMatch(
       '<b><b><b>  A  </b></b></b><b>  B  </b>', root);
 
-  root.innerHTML = '';
-  root.appendChild(goog.dom.createDom('div', null,
-      goog.dom.createDom('b', null,
-          goog.dom.createDom('b', null, '  A  '))));
-  root.appendChild(goog.dom.createDom('b', null, '  B  '));
+  goog.dom.removeChildren(root);
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.DIV, null,
+      goog.dom.createDom(goog.dom.TagName.B, null,
+          goog.dom.createDom(goog.dom.TagName.B, null, '  A  '))));
+  root.appendChild(goog.dom.createDom(goog.dom.TagName.B, null, '  B  '));
 
   goog.testing.dom.assertHtmlContentsMatch(
       '<div><b><b>  A  </b></b></div><b>  B  </b>', root);
@@ -431,4 +431,16 @@ function testAssertHtmlMatches() {
     goog.testing.dom.assertHtmlMatches('<div>abc</div>', '<div>abd</div>');
   });
   assertContains('Text should match', e.message);
+}
+
+function testAssertHtmlMatchesWithSvgAttributes() {
+  goog.testing.dom.assertHtmlMatches(
+      '<svg height="10px"></svg>',
+      '<svg height="10px"></svg>');
+}
+
+function testAssertHtmlMatchesWithScriptWithNewLines() {
+  goog.testing.dom.assertHtmlMatches(
+      '<script>var a;\nvar b;</script>',
+      '<script>var a;\nvar b;</script>');
 }

@@ -33,6 +33,7 @@
 
 goog.provide('goog.testing.TestRunner');
 
+goog.require('goog.dom.TagName');
 goog.require('goog.testing.TestCase');
 
 
@@ -49,48 +50,40 @@ goog.require('goog.testing.TestCase');
 goog.testing.TestRunner = function() {
   /**
    * Errors that occurred in the window.
-   * @type {Array<string>}
+   * @type {!Array<string>}
    */
   this.errors = [];
+
+  /**
+   * Reference to the active test case.
+   * @type {?goog.testing.TestCase}
+   */
+  this.testCase = null;
+
+  /**
+   * Whether the test runner has been initialized yet.
+   * @type {boolean}
+   */
+  this.initialized = false;
+
+  /**
+   * Element created in the document to add test results to.
+   * @private {?Element}
+   */
+  this.logEl_ = null;
+
+  /**
+   * Function to use when filtering errors.
+   * @private {(function(string))?}
+   */
+  this.errorFilter_ = null;
+
+  /**
+   * Whether an empty test case counts as an error.
+   * @private {boolean}
+   */
+  this.strict_ = true;
 };
-
-
-/**
- * Reference to the active test case.
- * @type {goog.testing.TestCase?}
- */
-goog.testing.TestRunner.prototype.testCase = null;
-
-
-/**
- * Whether the test runner has been initialized yet.
- * @type {boolean}
- */
-goog.testing.TestRunner.prototype.initialized = false;
-
-
-/**
- * Element created in the document to add test results to.
- * @type {Element}
- * @private
- */
-goog.testing.TestRunner.prototype.logEl_ = null;
-
-
-/**
- * Function to use when filtering errors.
- * @type {(function(string))?}
- * @private
- */
-goog.testing.TestRunner.prototype.errorFilter_ = null;
-
-
-/**
- * Whether an empty test case counts as an error.
- * @type {boolean}
- * @private
- */
-goog.testing.TestRunner.prototype.strict_ = true;
 
 
 /**
@@ -295,7 +288,7 @@ goog.testing.TestRunner.prototype.onComplete_ = function() {
   if (!this.logEl_) {
     var el = document.getElementById('closureTestRunnerLog');
     if (el == null) {
-      el = document.createElement('div');
+      el = document.createElement(goog.dom.TagName.DIV);
       document.body.appendChild(el);
     }
     this.logEl_ = el;
@@ -305,7 +298,7 @@ goog.testing.TestRunner.prototype.onComplete_ = function() {
   this.writeLog(log);
 
   // TODO(chrishenry): Make this work with multiple test cases (b/8603638).
-  var runAgainLink = document.createElement('a');
+  var runAgainLink = document.createElement(goog.dom.TagName.A);
   runAgainLink.style.display = 'inline-block';
   runAgainLink.style.fontSize = 'small';
   runAgainLink.style.marginBottom = '16px';
@@ -336,7 +329,7 @@ goog.testing.TestRunner.prototype.writeLog = function(log) {
     } else {
       color = '#333';
     }
-    var div = document.createElement('div');
+    var div = document.createElement(goog.dom.TagName.DIV);
     if (line.substr(0, 2) == '> ') {
       // The stack trace may contain links so it has to be interpreted as HTML.
       div.innerHTML = line;
@@ -373,7 +366,7 @@ goog.testing.TestRunner.prototype.writeLog = function(log) {
       href = href.split('#')[0].split('?')[0] + newSearch + hash;
 
       // Add the link.
-      var a = document.createElement('A');
+      var a = document.createElement(goog.dom.TagName.A);
       a.innerHTML = '(run individually)';
       a.style.fontSize = '0.8em';
       a.style.color = '#888';

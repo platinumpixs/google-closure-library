@@ -16,9 +16,11 @@ goog.provide('goog.ui.TooltipTest');
 goog.setTestOnly('goog.ui.TooltipTest');
 
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.events.Event');
 goog.require('goog.events.EventHandler');
 goog.require('goog.events.EventType');
+goog.require('goog.events.FocusHandler');
 goog.require('goog.html.testing');
 goog.require('goog.math.Coordinate');
 goog.require('goog.positioning.AbsolutePosition');
@@ -63,7 +65,7 @@ function setUp() {
   // We get access denied error when accessing the iframe in IE on the farm
   // as IE doesn't have the same window size issues as firefox on the farm
   // we bypass the iframe and use the current document instead.
-  if (goog.userAgent.IE) {
+  if (goog.userAgent.EDGE_OR_IE) {
     dom = goog.dom.getDomHelper(document);
   } else {
     var frame = document.getElementById('testframe');
@@ -79,7 +81,7 @@ function setUp() {
       '<p id="second">Secondary target</p>';
 
   tt = new goog.ui.Tooltip(undefined, undefined, dom);
-  tt.setElement(dom.createDom('div', {id: 'popup',
+  tt.setElement(dom.createDom(goog.dom.TagName.DIV, {id: 'popup',
     style: 'visibility:hidden'},
   'Hello'));
   clock = new goog.testing.MockClock(true);
@@ -96,7 +98,7 @@ function setUp() {
 function tearDown() {
   // tooltip needs to be hidden as well as disposed of so that it doesn't
   // leave global state hanging around to trip up other tests.
-  tt.onHide_();
+  tt.onHide();
   tt.dispose();
   clock.uninstall();
   handler.removeAll();
@@ -263,9 +265,10 @@ function testDispose() {
 function testNested() {
   var ttNested;
   tt.getElement().appendChild(dom.createDom(
-      'span', {id: 'nested'}, 'Goodbye'));
+      goog.dom.TagName.SPAN, {id: 'nested'}, 'Goodbye'));
   ttNested = new goog.ui.Tooltip(undefined, undefined, dom);
-  ttNested.setElement(dom.createDom('div', {id: 'nestedPopup'}, 'hi'));
+  ttNested.setElement(dom.createDom(goog.dom.TagName.DIV,
+                                    {id: 'nestedPopup'}, 'hi'));
   tt.setShowDelayMs(100);
   tt.setHideDelayMs(50);
   ttNested.setShowDelayMs(75);
@@ -331,7 +334,7 @@ function testNested() {
   assertEquals('visible', tt.getElement().style.visibility);
   assertEquals('hidden', ttNested.getElement().style.visibility);
 
-  ttNested.onHide_();
+  ttNested.onHide();
   ttNested.dispose();
 }
 
@@ -391,4 +394,66 @@ function testSetContent_guardedByGlobalFlag() {
       assertThrows(function() {
         tt.setHtml('<img src="blag" onerror="evil();">');
       }).message);
+}
+
+function testSetElementNull() {
+  tt.setElement(null);
+}
+
+function testFocusBlurElementsInTooltip() {
+  var anchorEl = dom.getElement('hovertarget');
+  goog.dom.setFocusableTabIndex(anchorEl, true);
+  tt.attach(anchorEl);
+  goog.testing.events.fireFocusEvent(anchorEl);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  goog.testing.events.fireBlurEvent(anchorEl);
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSIN);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  // Run blur on the previous element followed by focus on the element being
+  // focused, as would normally happen when focus() is called on an element.
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSOUT);
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSIN);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSOUT);
+  clock.tick(1000);
+  assertEquals('hidden', tt.getElement().style.visibility);
+}
+
+function testFocusElementInTooltipThenBackToAnchor() {
+  var anchorEl = dom.getElement('hovertarget');
+  goog.dom.setFocusableTabIndex(anchorEl, true);
+  tt.attach(anchorEl);
+  goog.testing.events.fireFocusEvent(anchorEl);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  // Run blur on the previous element followed by focus on the element being
+  // focused, as would normally happen when focus() is called on an element.
+  goog.testing.events.fireBlurEvent(anchorEl);
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSIN);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  // Run blur on the previous element followed by focus on the element being
+  // focused, as would normally happen when focus() is called on an element.
+  tt.tooltipFocusHandler_.dispatchEvent(
+      goog.events.FocusHandler.EventType.FOCUSOUT);
+  goog.testing.events.fireFocusEvent(anchorEl);
+  clock.tick(1000);
+  assertEquals('visible', tt.getElement().style.visibility);
+
+  goog.testing.events.fireBlurEvent(anchorEl);
+  clock.tick(1000);
+  assertEquals('hidden', tt.getElement().style.visibility);
 }

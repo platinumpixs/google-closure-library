@@ -59,11 +59,11 @@ var linkObj;
 
 function setUp() {
   testDiv = goog.dom.getDocument().getElementById('test');
-  testDiv.innerHTML = 'Some preceeding text';
+  goog.dom.setTextContent(testDiv, 'Some preceeding text');
 
   anchorElem = goog.dom.createElement(goog.dom.TagName.A);
   anchorElem.href = 'http://www.google.com/';
-  anchorElem.innerHTML = 'anchor text';
+  goog.dom.setTextContent(anchorElem, 'anchor text');
   goog.dom.appendChild(testDiv, anchorElem);
   extraAnchors = [];
 
@@ -92,7 +92,7 @@ function setUp() {
 function tearDown() {
   plugin.dispose();
   tearDownRealEditableField();
-  testDiv.innerHTML = '';
+  goog.dom.removeChildren(testDiv);
   mockCtrl.$tearDown();
 }
 
@@ -682,7 +682,7 @@ function testBug7279077ScrollOnFocus() {
   elem.style.contenteditable = 'true';
 
   // Add a bunch of text before the anchor tag.
-  var longTextElem = document.createElement('span');
+  var longTextElem = document.createElement(goog.dom.TagName.SPAN);
   longTextElem.innerHTML = goog.string.repeat('All work and no play.<p>', 20);
   elem.insertBefore(longTextElem, elem.firstChild);
 
@@ -723,7 +723,7 @@ function testBug7279077ScrollOnFocus() {
  * it.
  */
 function setUpRealEditableField() {
-  fieldElem = document.createElement('div');
+  fieldElem = document.createElement(goog.dom.TagName.DIV);
   fieldElem.id = 'myField';
   document.body.appendChild(fieldElem);
   fieldElem.appendChild(anchorElem);
