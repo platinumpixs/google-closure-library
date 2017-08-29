@@ -27,6 +27,7 @@ var MultiTestRunner = goog.require('goog.testing.MultiTestRunner');
 var TestCase = goog.require('goog.testing.TestCase');
 var jsunit = goog.require('goog.testing.jsunit');
 var testSuite = goog.require('goog.testing.testSuite');
+var json = goog.require('goog.json');
 
 var testRunner;
 
@@ -121,12 +122,17 @@ var testObj = {
       return allResults;
     };
 
+    window['G_testRunner']['getTestResultsAsJson'] = function() {
+      return json.serialize(allResults);
+    };
+
     return failurePromise.then(function(failures) {
       var testResults = processAllTestResults(failures['allTestResults']);
       allResults = testResults.allResults;
       if (testResults.totalFailures) {
-        fail(testResults.totalFailures + ' of ' + testResults.totalTests +
-             ' test(s) failed!\n\n' + testResults.failureReports);
+        fail(
+            testResults.totalFailures + ' of ' + testResults.totalTests +
+            ' test(s) failed!\n\n' + testResults.failureReports);
       }
     });
   }

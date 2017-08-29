@@ -143,6 +143,7 @@ goog.async.nextTick.setImmediate_;
 goog.async.nextTick.getSetImmediateEmulator_ = function() {
   // Create a private message channel and use it to postMessage empty messages
   // to ourselves.
+  /** @type {!Function|undefined} */
   var Channel = goog.global['MessageChannel'];
   // If MessageChannel is not available and we are in a browser, implement
   // an iframe based polyfill in browsers that have postMessage and
@@ -156,7 +157,8 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
     /** @constructor */
     Channel = function() {
       // Make an empty, invisible iframe.
-      var iframe = document.createElement(goog.dom.TagName.IFRAME);
+      var iframe = /** @type {!HTMLIFrameElement} */ (
+          document.createElement(String(goog.dom.TagName.IFRAME)));
       iframe.style.display = 'none';
       iframe.src = '';
       document.documentElement.appendChild(iframe);
@@ -171,9 +173,9 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
       var message = 'callImmediate' + Math.random();
       // The same origin policy rejects attempts to postMessage from file: urls
       // unless the origin is '*'.
-      // TODO(b/16335441): Use '*' origin for data: and other similar protocols.
       var origin = win.location.protocol == 'file:' ?
-          '*' : win.location.protocol + '//' + win.location.host;
+          '*' :
+          win.location.protocol + '//' + win.location.host;
       var onmessage = goog.bind(function(e) {
         // Validate origin and message to make sure that this message was
         // intended for us. If the origin is set to '*' (see above) only the
@@ -187,14 +189,11 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
       win.addEventListener('message', onmessage, false);
       this['port1'] = {};
       this['port2'] = {
-        postMessage: function() {
-          win.postMessage(message, origin);
-        }
+        postMessage: function() { win.postMessage(message, origin); }
       };
     };
   }
-  if (typeof Channel !== 'undefined' &&
-      (!goog.labs.userAgent.browser.isIE())) {
+  if (typeof Channel !== 'undefined' && !goog.labs.userAgent.browser.isIE()) {
     // Exclude all of IE due to
     // http://codeforhire.com/2013/09/21/setimmediate-and-messagechannel-broken-on-internet-explorer-10/
     // which allows starving postMessage with a busy setTimeout loop.
@@ -213,19 +212,18 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
       }
     };
     return function(cb) {
-      tail.next = {
-        cb: cb
-      };
+      tail.next = {cb: cb};
       tail = tail.next;
       channel['port2'].postMessage(0);
     };
   }
   // Implementation for IE6 to IE10: Script elements fire an asynchronous
   // onreadystatechange event when inserted into the DOM.
-  if (typeof document !== 'undefined' && 'onreadystatechange' in
-      document.createElement(goog.dom.TagName.SCRIPT)) {
+  if (typeof document !== 'undefined' &&
+      'onreadystatechange' in
+          document.createElement(String(goog.dom.TagName.SCRIPT))) {
     return function(cb) {
-      var script = document.createElement(goog.dom.TagName.SCRIPT);
+      var script = document.createElement(String(goog.dom.TagName.SCRIPT));
       script.onreadystatechange = function() {
         // Clean up and call the callback.
         script.onreadystatechange = null;
@@ -241,7 +239,7 @@ goog.async.nextTick.getSetImmediateEmulator_ = function() {
   // or more.
   // NOTE(user): This fallback is used for IE11.
   return function(cb) {
-    goog.global.setTimeout(cb, 0);
+    goog.global.setTimeout(/** @type {function()} */ (cb), 0);
   };
 };
 
@@ -264,6 +262,4 @@ goog.debug.entryPointRegistry.register(
      * @param {function(!Function): !Function} transformer The transforming
      *     function.
      */
-    function(transformer) {
-      goog.async.nextTick.wrapCallback_ = transformer;
-    });
+    function(transformer) { goog.async.nextTick.wrapCallback_ = transformer; });

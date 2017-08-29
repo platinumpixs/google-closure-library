@@ -22,17 +22,19 @@ goog.require('goog.json');
 goog.require('goog.net.ErrorCode');
 goog.require('goog.net.EventType');
 goog.require('goog.net.IframeIo');
+goog.forwardDeclare('goog.testing.TestQueue');
 
 
 
 /**
- * Mock implenetation of goog.net.IframeIo. This doesn't provide a mock
+ * Mock implementation of goog.net.IframeIo. This doesn't provide a mock
  * implementation for all cases, but it's not too hard to add them as needed.
  * @param {goog.testing.TestQueue} testQueue Test queue for inserting test
  *     events.
  * @constructor
  * @extends {goog.events.EventTarget}
  * @final
+ * @deprecated Use goog.testing.net.MockIFrameIo instead.
  */
 goog.net.MockIFrameIo = function(testQueue) {
   goog.events.EventTarget.call(this);
@@ -118,10 +120,10 @@ goog.net.MockIFrameIo.prototype.complete_;
  *     caching.
  * @param {Object|goog.structs.Map=} opt_data Map of key-value pairs.
  */
-goog.net.MockIFrameIo.prototype.send = function(uri, opt_method, opt_noCache,
-                                                opt_data) {
+goog.net.MockIFrameIo.prototype.send = function(
+    uri, opt_method, opt_noCache, opt_data) {
   if (this.active_) {
-    throw Error('[goog.net.IframeIo] Unable to send, already active.');
+    throw new Error('[goog.net.IframeIo] Unable to send, already active.');
   }
 
   this.testQueue_.enqueue(['s', uri, opt_method, opt_noCache, opt_data]);
@@ -138,10 +140,10 @@ goog.net.MockIFrameIo.prototype.send = function(uri, opt_method, opt_noCache,
  * @param {boolean=} opt_noCache Append a timestamp to the request to avoid
  *     caching.
  */
-goog.net.MockIFrameIo.prototype.sendFromForm = function(form, opt_uri,
-    opt_noCache) {
+goog.net.MockIFrameIo.prototype.sendFromForm = function(
+    form, opt_uri, opt_noCache) {
   if (this.active_) {
-    throw Error('[goog.net.IframeIo] Unable to send, already active.');
+    throw new Error('[goog.net.IframeIo] Unable to send, already active.');
   }
 
   this.testQueue_.enqueue(['s', form, opt_uri, opt_noCache]);

@@ -18,6 +18,7 @@ goog.setTestOnly('goog.messaging.PortChannelTest');
 goog.require('goog.Promise');
 goog.require('goog.Timer');
 goog.require('goog.dom');
+goog.require('goog.dom.TagName');
 goog.require('goog.events');
 goog.require('goog.events.EventTarget');
 goog.require('goog.events.EventType');
@@ -127,8 +128,7 @@ function expectNoMessage() {
 function receiveMessage(serviceName, payload, opt_origin, opt_ports) {
   mockPort.dispatchEvent(
       goog.testing.messaging.MockMessageEvent.wrap(
-          makeMessage(serviceName, payload),
-          opt_origin || 'http://google.com',
+          makeMessage(serviceName, payload), opt_origin || 'http://google.com',
           undefined, undefined, opt_ports));
 }
 
@@ -139,8 +139,7 @@ function receiveNonChannelMessage(data) {
     data = goog.json.serialize(data);
   }
   mockPort.dispatchEvent(
-      goog.testing.messaging.MockMessageEvent.wrap(
-          data, 'http://google.com'));
+      goog.testing.messaging.MockMessageEvent.wrap(data, 'http://google.com'));
 }
 
 
@@ -158,10 +157,14 @@ function testPostMessageWithPorts() {
   var channel = new MessageChannel();
   var port1 = channel.port1;
   var port2 = channel.port2;
-  mockPort.postMessage(makeMessage('foobar', {'val': [
-    {'_port': {'type': 'real', 'index': 0}},
-    {'_port': {'type': 'real', 'index': 1}}
-  ]}), [port1, port2]);
+  mockPort.postMessage(
+      makeMessage('foobar', {
+        'val': [
+          {'_port': {'type': 'real', 'index': 0}},
+          {'_port': {'type': 'real', 'index': 1}}
+        ]
+      }),
+      [port1, port2]);
   mockControl.$replayAll();
   portChannel.send('foobar', {'val': [port1, port2]});
 }
@@ -169,9 +172,7 @@ function testPostMessageWithPorts() {
 function testReceiveMessage() {
   var promise = registerService(portChannel, 'foobar');
   receiveMessage('foobar', 'This is a string');
-  return promise.then(function(msg) {
-    assertEquals(msg, 'This is a string');
-  });
+  return promise.then(function(msg) { assertEquals(msg, 'This is a string'); });
 }
 
 
@@ -184,10 +185,14 @@ function testReceiveMessageWithPorts() {
   var port2 = channel.port2;
   var promise = registerService(portChannel, 'foobar', true);
 
-  receiveMessage('foobar', {'val': [
-    {'_port': {'type': 'real', 'index': 0}},
-    {'_port': {'type': 'real', 'index': 1}}
-  ]}, null, [port1, port2]);
+  receiveMessage(
+      'foobar', {
+        'val': [
+          {'_port': {'type': 'real', 'index': 0}},
+          {'_port': {'type': 'real', 'index': 1}}
+        ]
+      },
+      null, [port1, port2]);
 
   return promise.then(function(msg) {
     assertObjectEquals(msg, {'val': [port1, port2]});
@@ -212,20 +217,15 @@ function testReceiveNonChannelMessageWithArrayBody() {
 function testReceiveNonChannelMessageWithNoFlag() {
   expectNoMessage();
   mockControl.$replayAll();
-  receiveNonChannelMessage({
-    serviceName: 'foobar',
-    payload: 'this is a payload'
-  });
+  receiveNonChannelMessage(
+      {serviceName: 'foobar', payload: 'this is a payload'});
 }
 
 
 function testReceiveNonChannelMessageWithFalseFlag() {
   expectNoMessage();
   mockControl.$replayAll();
-  var body = {
-    serviceName: 'foobar',
-    payload: 'this is a payload'
-  };
+  var body = {serviceName: 'foobar', payload: 'this is a payload'};
   body[goog.messaging.PortChannel.FLAG] = false;
   receiveNonChannelMessage(body);
 }
@@ -308,8 +308,9 @@ function testWindow() {
   }
 
   return createIframe().then(function(iframe) {
-    var iframeChannel = goog.messaging.PortChannel.forEmbeddedWindow(
-        iframe, '*', timer);
+    var peerOrigin = window.location.protocol + '//' + window.location.host;
+    var iframeChannel =
+        goog.messaging.PortChannel.forEmbeddedWindow(iframe, peerOrigin, timer);
 
     var promise = registerService(iframeChannel, 'pong');
     iframeChannel.send('ping', 'fizzbang');
@@ -329,8 +330,9 @@ function testWindowCanceled() {
   }
 
   return createIframe().then(function(iframe) {
-    var iframeChannel = goog.messaging.PortChannel.forEmbeddedWindow(
-        iframe, '*', timer);
+    var peerOrigin = window.location.protocol + '//' + window.location.host;
+    var iframeChannel =
+        goog.messaging.PortChannel.forEmbeddedWindow(iframe, peerOrigin, timer);
     iframeChannel.cancel();
 
     var promise = registerService(iframeChannel, 'pong').then(function(msg) {
@@ -373,11 +375,12 @@ function testWindowWontReceiveFromWrongOrigin() {
 
   return createIframe('testdata/portchannel_wrong_origin_inner.html')
       .then(function(iframe) {
+        var peerOrigin = window.location.protocol + '//' + window.location.host;
         var iframeChannel = goog.messaging.PortChannel.forEmbeddedWindow(
-            iframe, '*', timer);
+            iframe, peerOrigin, timer);
 
-        var promise = registerService(iframeChannel, 'pong')
-            .then(function(msg) {
+        var promise =
+            registerService(iframeChannel, 'pong').then(function(msg) {
               fail('Should not receive pong from unexpected origin');
             });
         iframeChannel.send('ping', 'fizzbang');
@@ -397,20 +400,22 @@ function testWindowWontReceiveFromWrongOrigin() {
  * @return {!goog.Promise} Promise that settles when the assertion is complete.
  */
 function assertPortsEntangled(port1, port2) {
-  var port2Promise = new goog.Promise(function(resolve, reject) {
-    port2.onmessage = resolve;
-  }).then(function(e) {
-    assertEquals('First port 1 should send a message to port 2',
-                 'port1 to port2', e.data);
-    port2.postMessage('port2 to port1');
-  });
+  var port2Promise =
+      new goog.Promise(function(resolve, reject) { port2.onmessage = resolve; })
+          .then(function(e) {
+            assertEquals(
+                'First port 1 should send a message to port 2',
+                'port1 to port2', e.data);
+            port2.postMessage('port2 to port1');
+          });
 
-  var port1Promise = new goog.Promise(function(resolve, reject) {
-    port1.onmessage = resolve;
-  }).then(function(e) {
-    assertEquals('Then port 2 should respond to port 1',
-                 'port2 to port1', e.data);
-  });
+  var port1Promise =
+      new goog.Promise(function(resolve, reject) { port1.onmessage = resolve; })
+          .then(function(e) {
+            assertEquals(
+                'Then port 2 should respond to port 1', 'port2 to port1',
+                e.data);
+          });
 
   port1.postMessage('port1 to port2');
   return goog.Promise.all([port1Promise, port2Promise]);
@@ -424,13 +429,15 @@ function assertPortsEntangled(port1, port2) {
  *     loaded iframe.
  */
 function createIframe(opt_url) {
-  var iframe = goog.dom.createDom('iframe', {
+  var iframe = goog.dom.createDom(goog.dom.TagName.IFRAME, {
     style: 'display: none',
     src: opt_url || 'testdata/portchannel_inner.html'
   });
 
-  return new goog.Promise(function(resolve, reject) {
-    goog.events.listenOnce(iframe, goog.events.EventType.LOAD, resolve);
-    goog.dom.appendChild(frameDiv, iframe);
-  }).then(function(e) { return iframe.contentWindow; });
+  return new goog
+      .Promise(function(resolve, reject) {
+        goog.events.listenOnce(iframe, goog.events.EventType.LOAD, resolve);
+        goog.dom.appendChild(frameDiv, iframe);
+      })
+      .then(function(e) { return iframe.contentWindow; });
 }

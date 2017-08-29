@@ -73,8 +73,8 @@ goog.net.IframeLoadMonitor = function(iframe, opt_hasContent) {
     // seems to work just fine.
     var isIe6OrLess =
         goog.userAgent.IE && !goog.userAgent.isVersionOrHigher('7');
-    var loadEvtType = isIe6OrLess ?
-        goog.events.EventType.READYSTATECHANGE : goog.events.EventType.LOAD;
+    var loadEvtType = isIe6OrLess ? goog.events.EventType.READYSTATECHANGE :
+                                    goog.events.EventType.LOAD;
     this.onloadListenerKey_ = goog.events.listen(
         this.iframe_, loadEvtType, this.handleLoad_, false, this);
 
@@ -162,7 +162,7 @@ goog.net.IframeLoadMonitor.prototype.disposeInternal = function() {
  */
 goog.net.IframeLoadMonitor.prototype.isLoadedHelper_ = function() {
   var isLoaded = false;
-  /** @preserveTry */
+
   try {
     if (!this.hasContent_ && goog.userAgent.IE &&
         !goog.userAgent.isVersionOrHigher('11')) {

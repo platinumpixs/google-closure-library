@@ -75,8 +75,8 @@ goog.events.Listenable.IMPLEMENTED_BY_PROP =
  * Marks a given class (constructor) as an implementation of
  * Listenable, do that we can query that fact at runtime. The class
  * must have already implemented the interface.
- * @param {!Function} cls The class constructor. The corresponding
- *     class must have already implemented the interface.
+ * @param {!function(new:goog.events.Listenable,...)} cls The class constructor.
+ *     The corresponding class must have already implemented the interface.
  */
 goog.events.Listenable.addImplementation = function(cls) {
   cls.prototype[goog.events.Listenable.IMPLEMENTED_BY_PROP] = true;
@@ -157,7 +157,7 @@ goog.events.Listenable.prototype.unlisten;
  * Removes an event listener which was added with listen() by the key
  * returned by listen().
  *
- * @param {goog.events.ListenableKey} key The key returned by
+ * @param {!goog.events.ListenableKey} key The key returned by
  *     listen() or listenOnce().
  * @return {boolean} Whether any listener was removed.
  */

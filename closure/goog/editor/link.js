@@ -21,12 +21,15 @@
 goog.provide('goog.editor.Link');
 
 goog.require('goog.array');
+goog.require('goog.asserts');
 goog.require('goog.dom');
 goog.require('goog.dom.NodeType');
 goog.require('goog.dom.Range');
 goog.require('goog.dom.TagName');
+goog.require('goog.dom.safe');
 goog.require('goog.editor.BrowserFeature');
 goog.require('goog.editor.Command');
+goog.require('goog.editor.Field');
 goog.require('goog.editor.node');
 goog.require('goog.editor.range');
 goog.require('goog.string');
@@ -117,7 +120,7 @@ goog.editor.Link.prototype.isNew = function() {
  * @param {string} url A URL.
  */
 goog.editor.Link.prototype.initializeUrl = function(url) {
-  this.getAnchor().href = url;
+  goog.dom.safe.setAnchorHref(goog.asserts.assert(this.getAnchor()), url);
 };
 
 
@@ -129,7 +132,7 @@ goog.editor.Link.prototype.removeLink = function() {
   goog.dom.flattenElement(this.anchor_);
   this.anchor_ = null;
   while (this.extraAnchors_.length) {
-    goog.dom.flattenElement(/** @type {Element} */(this.extraAnchors_.pop()));
+    goog.dom.flattenElement(/** @type {Element} */ (this.extraAnchors_.pop()));
   }
 };
 
@@ -144,7 +147,7 @@ goog.editor.Link.prototype.removeLink = function() {
  */
 goog.editor.Link.prototype.setTextAndUrl = function(newText, newUrl) {
   var anchor = this.getAnchor();
-  anchor.href = newUrl;
+  goog.dom.safe.setAnchorHref(goog.asserts.assert(anchor), newUrl);
 
   // If the text did not change, don't update link text.
   var currentText = this.getCurrentText();
@@ -192,8 +195,7 @@ goog.editor.Link.prototype.placeCursorRightOf = function() {
 
     // Check if there is already a space after the link.  Only handle the
     // simple case - the next node is a text node that starts with a space.
-    if (nextSibling &&
-        nextSibling.nodeType == goog.dom.NodeType.TEXT &&
+    if (nextSibling && nextSibling.nodeType == goog.dom.NodeType.TEXT &&
         (goog.string.startsWith(nextSibling.data, goog.string.Unicode.NBSP) ||
          goog.string.startsWith(nextSibling.data, ' '))) {
       spaceNode = nextSibling;
@@ -269,8 +271,8 @@ goog.editor.Link.prototype.finishLinkCreation = function(field) {
  *     by the browser when parsing a selection.
  * @return {!goog.editor.Link} The link.
  */
-goog.editor.Link.createNewLink = function(anchor, url, opt_target,
-    opt_extraAnchors) {
+goog.editor.Link.createNewLink = function(
+    anchor, url, opt_target, opt_extraAnchors) {
   var link = new goog.editor.Link(anchor, true);
   link.initializeUrl(url);
 
@@ -358,11 +360,12 @@ goog.editor.Link.isLikelyUrl = function(str) {
  * @private
  */
 goog.editor.Link.LIKELY_EMAIL_ADDRESS_ = new RegExp(
-    '^' +                     // Test from start of string
-    '[\\w-]+(\\.[\\w-]+)*' +  // Dot-delimited alphanumerics and dashes (name)
-    '\\@' +                   // @
-    '([\\w-]+\\.)+' +         // Alphanumerics, dashes and dots (domain)
-    '(\\d+|\\w\\w+)$',        // Domain ends in at least one number or 2 letters
+    '^' +                         // Test from start of string
+        '[\\w-]+(\\.[\\w-]+)*' +  // Dot-delimited alphanumerics and dashes
+                                  // (name)
+        '\\@' +                   // @
+        '([\\w-]+\\.)+' +         // Alphanumerics, dashes and dots (domain)
+        '(\\d+|\\w\\w+)$',  // Domain ends in at least one number or 2 letters
     'i');
 
 

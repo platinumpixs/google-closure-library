@@ -20,6 +20,7 @@
  *
  */
 
+goog.setTestOnly('goog.testing.MultiTestRunner');
 goog.provide('goog.testing.MultiTestRunner');
 goog.provide('goog.testing.MultiTestRunner.TestFrame');
 
@@ -33,6 +34,7 @@ goog.require('goog.events.EventHandler');
 goog.require('goog.functions');
 goog.require('goog.object');
 goog.require('goog.string');
+goog.require('goog.testing.TestCase');
 goog.require('goog.ui.Component');
 goog.require('goog.ui.ServerChart');
 goog.require('goog.ui.TableSorter');
@@ -88,7 +90,7 @@ goog.testing.MultiTestRunner = function(opt_domHelper) {
   /**
    * Array of test result objects returned from G_testRunner.getTestResults for
    * each individual test run.
-   * @private {!Array<!Object<string,!Array<string>>>}
+   * @private {!Array<!Object<string,!Array<!goog.testing.TestCase.IResult>>>}
    */
   this.allTestResults_ = [];
 };
@@ -107,9 +109,7 @@ goog.testing.MultiTestRunner.DEFAULT_TIMEOUT_MS = 45 * 1000;
  * @type {Array<string>}
  */
 goog.testing.MultiTestRunner.STATES = [
-  'waiting for test runner',
-  'initializing tests',
-  'waiting for tests to finish'
+  'waiting for test runner', 'initializing tests', 'waiting for tests to finish'
 ];
 
 
@@ -570,7 +570,7 @@ goog.testing.MultiTestRunner.prototype.getFailureReports = function() {
 
 /**
  * Returns list of each frame's test results.
- * @return {!Array<!Object<string,!Array<string>>>}
+ * @return {!Array<!Object<string,!Array<!goog.testing.TestCase.IResult>>>}
  */
 goog.testing.MultiTestRunner.prototype.getAllTestResults = function() {
   return this.allTestResults_;
@@ -608,18 +608,16 @@ goog.testing.MultiTestRunner.prototype.createDom = function() {
 
   var buttons = this.dom_.createDom(goog.dom.TagName.DIV);
   buttons.className = goog.getCssName('goog-testrunner-buttons');
-  this.startButtonEl_ = this.dom_.createDom(goog.dom.TagName.BUTTON,
-                                            null, 'Start');
+  this.startButtonEl_ =
+      this.dom_.createDom(goog.dom.TagName.BUTTON, null, 'Start');
   this.stopButtonEl_ =
       this.dom_.createDom(goog.dom.TagName.BUTTON, {'disabled': true}, 'Stop');
   buttons.appendChild(this.startButtonEl_);
   buttons.appendChild(this.stopButtonEl_);
   el.appendChild(buttons);
 
-  this.eh_.listen(this.startButtonEl_, 'click',
-      this.onStartClicked_);
-  this.eh_.listen(this.stopButtonEl_, 'click',
-      this.onStopClicked_);
+  this.eh_.listen(this.startButtonEl_, 'click', this.onStartClicked_);
+  this.eh_.listen(this.stopButtonEl_, 'click', this.onStopClicked_);
 
   this.logEl_ = this.dom_.createElement(goog.dom.TagName.DIV);
   this.logEl_.className = goog.getCssName('goog-testrunner-log');
@@ -745,7 +743,7 @@ goog.testing.MultiTestRunner.prototype.log = function(msg) {
 /**
  * Processes a result returned from a TestFrame.  If there are tests remaining
  * it will trigger the next one to be run, otherwise if there are no tests and
- * all results have been recieved then it will call finish.
+ * all results have been received then it will call finish.
  * @param {goog.testing.MultiTestRunner.TestFrame} frame The frame that just
  *     finished.
  */
@@ -764,8 +762,9 @@ goog.testing.MultiTestRunner.prototype.processResult = function(frame) {
   this.finished_[test] = true;
 
   var prefix = success ? '' : '*** FAILURE *** ';
-  this.log(prefix +
-      this.trimFileName_(test) + ' : ' + (success ? 'Passed' : 'Failed'));
+  this.log(
+      prefix + this.trimFileName_(test) + ' : ' +
+      (success ? 'Passed' : 'Failed'));
 
   this.resultCount_++;
 
@@ -834,9 +833,10 @@ goog.testing.MultiTestRunner.prototype.finish_ = function() {
   }
 
   if (unfinished.length) {
-    this.reportEl_.appendChild(goog.dom.createDom(
-        goog.dom.TagName.PRE, undefined,
-        'These tests did not finish:\n' + unfinished.join('\n')));
+    this.reportEl_.appendChild(
+        goog.dom.createDom(
+            goog.dom.TagName.PRE, undefined,
+            'These tests did not finish:\n' + unfinished.join('\n')));
   }
 
   this.dispatchEvent({
@@ -882,9 +882,7 @@ goog.testing.MultiTestRunner.prototype.drawStats_ = function() {
  */
 goog.testing.MultiTestRunner.prototype.drawFilesHistogram_ = function() {
   this.drawStatsHistogram_(
-      'numFilesLoaded',
-      this.numFilesStatsBucketSize_,
-      goog.functions.identity,
+      'numFilesLoaded', this.numFilesStatsBucketSize_, goog.functions.identity,
       500,
       'Histogram showing distribution of\nnumber of files loaded per test');
 };
@@ -896,10 +894,8 @@ goog.testing.MultiTestRunner.prototype.drawFilesHistogram_ = function() {
  */
 goog.testing.MultiTestRunner.prototype.drawTimeHistogram_ = function() {
   this.drawStatsHistogram_(
-      'totalTime',
-      this.runTimeStatsBucketSize_,
-      function(x) { return x / 1000; },
-      500,
+      'totalTime', this.runTimeStatsBucketSize_,
+      function(x) { return x / 1000; }, 500,
       'Histogram showing distribution of\ntime spent running tests in s');
 };
 
@@ -975,9 +971,8 @@ goog.testing.MultiTestRunner.prototype.drawRunTimePie_ = function() {
   pie.setMinValue(0);
   pie.setMaxValue(totalTime);
   pie.addDataSet([runTime, loadTime], 'ff9900');
-  pie.setXLabels([
-    'Test execution (' + runTime + 'ms)',
-    'Loading (' + loadTime + 'ms)']);
+  pie.setXLabels(
+      ['Test execution (' + runTime + 'ms)', 'Loading (' + loadTime + 'ms)']);
   pie.render(this.statsEl_);
 };
 
@@ -999,26 +994,24 @@ goog.testing.MultiTestRunner.prototype.drawWorstTestsTable_ = function() {
   var td = goog.bind(this.dom_.createDom, this.dom_, 'td');
   var a = goog.bind(this.dom_.createDom, this.dom_, 'a');
 
-  var head = thead({'style': 'cursor: pointer'},
-      tr(null,
-          th(null, ' '),
-          th(null, 'Test file'),
-          th('center', 'Num files loaded'),
-          th('center', 'Run time (ms)'),
-          th('center', 'Total time (ms)')));
+  var head = thead(
+      {'style': 'cursor: pointer'},
+      tr(null, th(null, ' '), th(null, 'Test file'),
+         th('center', 'Num files loaded'), th('center', 'Run time (ms)'),
+         th('center', 'Total time (ms)')));
   var body = tbody();
   var table = this.dom_.createDom(goog.dom.TagName.TABLE, null, head, body);
 
   for (var i = 0; i < this.stats_.length; i++) {
     var stat = this.stats_[i];
-    body.appendChild(tr(null,
-        td('center', String(i + 1)),
-        td(null, a(
-            {'href': this.basePath_ + stat['testFile'], 'target': '_blank'},
-            stat['testFile'])),
-        td('center', String(stat['numFilesLoaded'])),
-        td('center', String(stat['runTime'])),
-        td('center', String(stat['totalTime']))));
+    body.appendChild(
+        tr(null, td('center', String(i + 1)),
+           td(null,
+              a({'href': this.basePath_ + stat['testFile'], 'target': '_blank'},
+                stat['testFile'])),
+           td('center', String(stat['numFilesLoaded'])),
+           td('center', String(stat['runTime'])),
+           td('center', String(stat['totalTime']))));
   }
 
   this.statsEl_.appendChild(table);
@@ -1049,8 +1042,8 @@ goog.testing.MultiTestRunner.prototype.writeCurrentSummary_ = function() {
   var executed = this.resultCount_;
   var passes = this.passes_;
   var duration = Math.round((goog.now() - this.startTime_) / 1000);
-  var text = executed + ' of ' + total + ' tests executed.<br>' +
-      passes + ' passed, ' + (executed - passes) + ' failed.<br>' +
+  var text = executed + ' of ' + total + ' tests executed.<br>' + passes +
+      ' passed, ' + (executed - passes) + ' failed.<br>' +
       'Duration: ' + duration + 's.';
   this.reportEl_.firstChild.innerHTML = text;
 };
@@ -1062,8 +1055,8 @@ goog.testing.MultiTestRunner.prototype.writeCurrentSummary_ = function() {
  * @param {*} success Whether the segment should indicate a success.
  * @private
  */
-goog.testing.MultiTestRunner.prototype.drawProgressSegment_ =
-    function(title, success) {
+goog.testing.MultiTestRunner.prototype.drawProgressSegment_ = function(
+    title, success) {
   var part = this.progressRow_.cells[this.resultCount_ - 1];
   part.title = title + ' : ' + (success ? 'SUCCESS' : 'FAILURE');
   part.style.backgroundColor = success ? '#090' : '#900';
@@ -1080,7 +1073,8 @@ goog.testing.MultiTestRunner.prototype.drawProgressSegment_ =
 goog.testing.MultiTestRunner.prototype.drawTestResult_ = function(
     test, success, report) {
   var text = goog.string.isEmptyOrWhitespace(report) ?
-      'No report for ' + test + '\n' : report;
+      'No report for ' + test + '\n' :
+      report;
   var el = this.dom_.createDom(goog.dom.TagName.DIV);
   text = goog.string.htmlEscape(text).replace(/\n/g, '<br>');
   if (success) {
@@ -1263,7 +1257,7 @@ goog.testing.MultiTestRunner.TestFrame = function(
   /**
    * Object to hold test results. Key is test method or file name (depending on
    * failure mode) and the value is an array of failure messages.
-   * @private {!Object<string,!Array<string>>}
+   * @private {!Object<string,!Array<!goog.testing.TestCase.IResult>>}
    */
   this.testResults_ = {};
 };
@@ -1430,9 +1424,9 @@ goog.testing.MultiTestRunner.TestFrame.prototype.getReport = function() {
 
 
 /**
- * @return {!Object<string,!Array<string>>} The results per individual test in
- *     the file. Key is the test filename concatenated with the test name, and
- *     the array holds failures.
+ * @return {!Object<string,!Array<!goog.testing.TestCase.IResult>>} The results
+ *     per individual test in the file. Key is the test filename concatenated
+ *     with the test name, and the array holds failures.
  */
 goog.testing.MultiTestRunner.TestFrame.prototype.getTestResults = function() {
   var results = {};
@@ -1476,8 +1470,7 @@ goog.testing.MultiTestRunner.TestFrame.prototype.finish_ = function() {
  * @private
  */
 goog.testing.MultiTestRunner.TestFrame.prototype.createIframe_ = function() {
-  this.iframeEl_ = /** @type {!HTMLIFrameElement} */ (
-      this.dom_.createDom(goog.dom.TagName.IFRAME));
+  this.iframeEl_ = this.dom_.createDom(goog.dom.TagName.IFRAME);
   this.getElement().appendChild(this.iframeEl_);
   this.eh_.listen(this.iframeEl_, 'load', this.onIframeLoaded_);
 };
@@ -1526,8 +1519,11 @@ goog.testing.MultiTestRunner.TestFrame.prototype.checkForCompletion_ =
         if (goog.object.isEmpty(this.testResults_)) {
           // Existence of a report is a signal of a test failure by the test
           // runner.
-          this.testResults_[this.testFile_] =
-              this.isSuccess_ ? [] : [this.report_];
+          this.testResults_[this.testFile_] = this.isSuccess_ ? [] : [{
+            'message': this.report_,
+            'source': this.testFile_,
+            'stacktrace': ''
+          }];
         }
         this.runTime_ = tr['getRunTime']();
         this.numFilesLoaded_ = tr['getNumFilesLoaded']();
@@ -1540,7 +1536,8 @@ goog.testing.MultiTestRunner.TestFrame.prototype.checkForCompletion_ =
   if (goog.now() - this.lastStateTime_ > this.timeoutMs_) {
     this.report_ = this.testFile_ + ' timed out  ' +
         goog.testing.MultiTestRunner.STATES[this.currentState_];
-    this.testResults_[this.testFile_] = [this.report_];
+    this.testResults_[this.testFile_] =
+        [{'message': this.report_, 'source': this.testFile_, 'stacktrace': ''}];
     this.isSuccess_ = false;
     this.finish_();
     return;
