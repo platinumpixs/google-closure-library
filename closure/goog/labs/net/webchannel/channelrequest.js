@@ -32,8 +32,6 @@ goog.require('goog.events.EventHandler');
 goog.require('goog.labs.net.webChannel.Channel');
 goog.require('goog.labs.net.webChannel.WebChannelDebug');
 goog.require('goog.labs.net.webChannel.requestStats');
-goog.require('goog.labs.net.webChannel.requestStats.ServerReachability');
-goog.require('goog.labs.net.webChannel.requestStats.Stat');
 goog.require('goog.net.ErrorCode');
 goog.require('goog.net.EventType');
 goog.require('goog.net.XmlHttp');
@@ -171,6 +169,14 @@ goog.labs.net.webChannel.ChannelRequest = function(
   this.postData_ = null;
 
   /**
+   * An array of pending messages that we have either received a non-successful
+   * response for, or no response at all, and which therefore may or may not
+   * have been received by the server.
+   * @private {!Array<goog.labs.net.webChannel.Wire.QueuedMap>}
+   */
+  this.pendingMessages_ = [];
+
+  /**
    * The XhrLte request if the request is using XMLHTTP
    * @private {goog.net.XhrIo}
    */
@@ -200,12 +206,6 @@ goog.labs.net.webChannel.ChannelRequest = function(
    * @private {number}
    */
   this.lastStatusCode_ = -1;
-
-  /**
-   * Whether to send the Connection:close header as part of the request.
-   * @private {boolean}
-   */
-  this.sendClose_ = true;
 
   /**
    * Whether the request has been cancelled due to a call to cancel.
@@ -413,6 +413,28 @@ ChannelRequest.prototype.setReadyStateChangeThrottle = function(throttle) {
 
 
 /**
+ * Sets the pending messages that this request is handling.
+ *
+ * @param {!Array<goog.labs.net.webChannel.Wire.QueuedMap>} pendingMessages
+ *     The pending messages for this request.
+ */
+ChannelRequest.prototype.setPendingMessages = function(pendingMessages) {
+  this.pendingMessages_ = pendingMessages;
+};
+
+
+/**
+ * Gets the pending messages that this request is handling, in case of a retry.
+ *
+ * @return {!Array<goog.labs.net.webChannel.Wire.QueuedMap>} The pending
+ *     messages for this request.
+ */
+ChannelRequest.prototype.getPendingMessages = function() {
+  return this.pendingMessages_;
+};
+
+
+/**
  * Uses XMLHTTP to send an HTTP POST to the server.
  *
  * @param {goog.Uri} uri  The uri of the request.
@@ -438,18 +460,12 @@ ChannelRequest.prototype.xmlHttpPost = function(uri, postData, decodeChunks) {
  * @param {?string} hostPrefix  The host prefix, if we might be using a
  *     secondary domain.  Note that it should also be in the URL, adding this
  *     won't cause it to be added to the URL.
- * @param {boolean=} opt_noClose   Whether to request that the tcp/ip connection
- *     should be closed.
  */
-ChannelRequest.prototype.xmlHttpGet = function(
-    uri, decodeChunks, hostPrefix, opt_noClose) {
+ChannelRequest.prototype.xmlHttpGet = function(uri, decodeChunks, hostPrefix) {
   this.type_ = ChannelRequest.Type_.XML_HTTP;
   this.baseUri_ = uri.clone().makeUnique();
   this.postData_ = null;
   this.decodeChunks_ = decodeChunks;
-  if (opt_noClose) {
-    this.sendClose_ = false;
-  }
 
   this.sendXmlHttp_(hostPrefix);
 };
@@ -497,7 +513,6 @@ ChannelRequest.prototype.sendXmlHttp_ = function(hostPrefix) {
     this.xmlHttp_.send(this.requestUri_, this.verb_, this.postData_, headers);
   } else {
     this.verb_ = 'GET';
-    // TODO(user): remove sendClose_ and opt_close everywhere
     this.xmlHttp_.send(this.requestUri_, this.verb_, null, headers);
   }
   requestStats.notifyServerReachabilityEvent(
